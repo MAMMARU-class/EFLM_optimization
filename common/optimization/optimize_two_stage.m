@@ -17,25 +17,42 @@ problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(1,4),'ub',ones(1,4),'options',options);
 [xg,fg,eg,og,sg]=run(ms,problem,CustomStartPointSet(starts));
 save(fullfile(folder,'global_checkpoint.mat'),'xg','fg','eg','og','sg','history','failures','cfg','p');
+if isempty(xg), error('EFLM:NoSolution','No global-stage solution; inspect global_checkpoint.mat'); end
 stage=2; stageClock=tic;
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
 startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,4)];
 [xl,fl,el,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
-if fl<fg, best=xl; else, best=xg; end
+if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
+% Inspect the refined time mesh before reporting success. If necessary,
+% continue constrained refinement on that same dense mesh.
+dense=sim_cycle_elastic_approx(lo+best.*width,p,tab,cfg,cfg.finalNodes);
+polish=struct('required',dense.maxViolation>cfg.constraintTolerance);
+if polish.required
+ stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
+ [best,polish.f,polish.exitflag,polish.output]=fmincon(@objective,best,[],[],[],[],...
+  localLo,localHi,@constraints,options);
+end
 result=struct('parameters',p,'settings',cfg,'geometryTable',tab,...
  'initialRng',initialRng,'finalRng',rng,'globalStartPoints',lo+starts.*width,...
  'localStartPoints',lo+startsLocal.*width,'globalBounds',[lo;hi],...
  'localBounds',[lo+localLo.*width;lo+localHi.*width],...
  'global',struct('x',lo+xg.*width,'f',fg,'exitflag',eg,'output',og,'solutions',sg),...
  'local',struct('x',lo+xl.*width,'f',fl,'exitflag',el,'output',ol,'solutions',sl),...
+ 'polish',polish,...
  'bestVariables',lo+best.*width,'history',history,'failures',{failures},'elapsed',toc(started));
 result.final=sim_cycle_elastic_approx(result.bestVariables,p,tab,cfg,cfg.finalNodes);
-result.valid=result.final.maxViolation<=cfg.constraintTolerance;
+result.valid=result.final.maxViolation<=cfg.constraintTolerance && ...
+ max(abs(result.final.body.periodic))<1e-8 && result.final.body.distance>0;
+result.status='completed_but_infeasible';
+if result.valid, result.status='feasible_within_sampled_constraints'; end
+result.flightVisualization='Joint interpolation only; not simulated swing dynamics';
+result.globalOptimality='MultiStart does not certify global optimality; finite search box';
 result.boundaryDistance=min(best,1-best);
 result.matlabVersion=version; result.createdAt=char(datetime('now','TimeZone','Asia/Tokyo'));
 save(fullfile(folder,'result.mat'),'result','-v7.3');
-writematrix(history,fullfile(folder,'optimization_history.csv'));
+writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL','v','Duty',...
+ 'objective','speed','CoT','maxViolation'}),fullfile(folder,'optimization_history.csv'));
 
  function r=evaluate(x)
   if isequal(x,lastX), r=lastR; return; end

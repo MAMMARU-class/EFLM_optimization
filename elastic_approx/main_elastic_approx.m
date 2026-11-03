@@ -2,6 +2,8 @@ function [result,folder] = main_elastic_approx(overrides)
 % Entry point: result = main_elastic_approx(); Requires MATLAB R2026b.
 if nargin<1, overrides=struct; end
 assert(strcmp(version('-release'),'2026b'),'Use MATLAB R2026b');
+assert(exist('fmincon','file')==2 && exist('MultiStart','class')==8,...
+ 'EFLM:MissingToolbox','Install Optimization Toolbox and Global Optimization Toolbox for R2026b');
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'elastic_approx')));
 p=robot_parameters(); cfg=optimization_settings();

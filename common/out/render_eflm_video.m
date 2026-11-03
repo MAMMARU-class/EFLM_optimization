@@ -5,7 +5,7 @@ dest=fullfile(folder,'animation'); if ~isfolder(dest), mkdir(dest); end
 vid=VideoWriter(fullfile(dest,'motion.mp4'),'MPEG-4'); vid.FrameRate=cfg.fps;
 open(vid); cv=onCleanup(@()close(vid));
 fig=figure('Visible','off','Position',[100 100 960 640]); cf=onCleanup(@()close(fig));
-for tt=linspace(0,cfg.cycles*b.T,max(2,ceil(cfg.cycles*b.T*cfg.fps)))
+for tt=linspace(0,cfg.cycles*b.T,max(2,ceil(cfg.cycles*b.T*cfg.fps/cfg.playbackSpeed)))
  cycle=min(cfg.cycles-1,floor(tt/b.T)); t=tt-cycle*b.T;
  if t<=b.Ts
   x=interp1(b.t,b.x,t); z=interp1(b.t,b.z,t);
@@ -27,7 +27,7 @@ for tt=linspace(0,cfg.cycles*b.T,max(2,ceil(cfg.cycles*b.T*cfg.fps)))
  end
  plot(x,z,'ko','MarkerFaceColor','k','MarkerSize',12);
  axis equal; xlim([x-.4 x+.4]); ylim([-.06 .48]); grid on;
- title(sprintf('%s | t = %.3f s',label,tt)); xlabel('x [m]'); ylabel('z [m]');
+ title(sprintf('%s | t = %.3f s | playback %.2fx',label,tt,cfg.playbackSpeed)); xlabel('x [m]'); ylabel('z [m]');
  drawnow; writeVideo(vid,getframe(fig));
 end
 end
