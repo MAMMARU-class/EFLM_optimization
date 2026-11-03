@@ -1,5 +1,5 @@
 function [Y,qa,points] = eflm_geometry(h,k,s,p)
-% Old EFLM assembly branch. Vectorized, complex-step-compatible geometry.
+% Shared exact EFLM assembly branch. Vectorized, complex-step-compatible geometry.
 d=sqrt(p.L2^2+p.LD^2+2*p.L2*p.LD*cos(k));
 qa=acos((p.L2^2+d.^2-p.LD^2)./(2*p.L2*d))...
   +acos((p.LB^2+d.^2-(p.L3+s).^2)./(2*p.LB*d));

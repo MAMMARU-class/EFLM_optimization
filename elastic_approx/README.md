@@ -16,10 +16,12 @@ EFLMの一次近似弾性モデルを、規定床反力のもとで連続最適�
 プロジェクト直下の実行関数を使います。
 
 ```matlab
-[result, folder] = run_elastic_approx_optimization();
+[result, folder] = run_elastic_optimization('approx');
 ```
 
 `folder` は今回の保存先です。保存先は常に次の形式になります。
+
+同じ最適化手法で厳密モデルを使う場合は `run_elastic_optimization('exact')` とします。共通の実行設定は `run_elastic_optimization.m` で編集します。旧名 `run_elastic_approx_optimization` は互換呼び出しとして残り、`'exact'` の指定にも対応します。
 
 ```text
 _logs/elastic_approx/YYYYMMDD_HHMMSS_SSS/
@@ -59,7 +61,7 @@ options.initial = [0.5, deg2rad(8), 0.473, 0.50, 0.29];
 options.w1 = 10;  % 平均速度の重み
 options.w2 = 1;   % CoTの重み
 
-[result, folder] = run_elastic_approx_optimization(options);
+[result, folder] = run_elastic_optimization('approx', options);
 ```
 
 `initial` は必ず `lower` と `upper` の間に置きます。指定していない項目は既定値が使われます。
@@ -95,7 +97,7 @@ options.localRadius = 0.10;
 options.w1 = 5;
 options.w2 = 1;
 
-[result, folder] = run_elastic_approx_optimization(options);
+[result, folder] = run_elastic_optimization('approx', options);
 ```
 
 最大化する評価値は `w1 * 平均速度 - w2 * CoT` です。`fmincon`には符号を反転した `w2 * CoT - w1 * 平均速度` を渡します。重みを変えると最適化の優先度が変わり、別の解になることがあります。

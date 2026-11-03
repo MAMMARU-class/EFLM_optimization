@@ -1,6 +1,8 @@
 function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
+simulate=@sim_cycle_elastic_approx;
+if isfield(cfg,'model') && strcmp(cfg.model,'elastic_exact'), simulate=@sim_cycle_elastic_exact; end
 history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
 stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
 stage=0; started=tic; stageClock=tic;
@@ -39,7 +41,7 @@ localElapsed=toc(stageClock);
 if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
 % Inspect the refined time mesh before reporting success. If necessary,
 % continue constrained refinement on that same dense mesh.
-dense=sim_cycle_elastic_approx(lo+best.*width,p,tab,cfg,cfg.finalNodes);
+dense=simulate(lo+best.*width,p,tab,cfg,cfg.finalNodes);
 polish=struct('required',true,'initialViolation',dense.maxViolation);
 stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
 active=[]; polish.passes=cell(0,1);
@@ -51,7 +53,7 @@ safeDense=[];
 polish.feasibleBaseline=struct('x',cfg.initial,'available',false,...
  'maxViolation',Inf,'failure','');
 try
- safeDense=sim_cycle_elastic_approx(cfg.initial,p,tab,cfg,cfg.finalNodes);
+ safeDense=simulate(cfg.initial,p,tab,cfg,cfg.finalNodes);
  polish.feasibleBaseline.available=true;
  polish.feasibleBaseline.maxViolation=safeDense.maxViolation;
 catch ME
@@ -73,7 +75,7 @@ for pass=1:16
  active=unique([active;(numel(dense.constraints)-2:numel(dense.constraints))']);
  [candidate,fval,flag,out]=fmincon(@objective,best,[],[],[],[],localLo,localHi,...
   @activeConstraints,options);
- check=sim_cycle_elastic_approx(lo+candidate.*width,p,tab,cfg,cfg.finalNodes);
+ check=simulate(lo+candidate.*width,p,tab,cfg,cfg.finalNodes);
  polish.passes{pass}=struct('x',lo+candidate.*width,'f',fval,'exitflag',flag,...
   'output',out,'maxViolation',check.maxViolation,'activeIndices',active);
  if check.maxViolation<=cfg.constraintTolerance && ...
@@ -99,7 +101,7 @@ result=struct('parameters',p,'settings',cfg,'geometryTable',tab,...
  'polish',polish,...
  'stageStats',struct('global',globalStats,'local',localStats,'polish',polishStats),...
  'bestVariables',lo+best.*width,'history',history,'failures',{failures},'elapsed',toc(started));
-result.final=sim_cycle_elastic_approx(result.bestVariables,p,tab,cfg,cfg.finalNodes);
+result.final=simulate(result.bestVariables,p,tab,cfg,cfg.finalNodes);
 result.valid=result.final.maxViolation<=cfg.constraintTolerance && ...
  max(abs(result.final.body.periodic))<1e-8 && result.final.body.distance>0;
 result.status='completed_but_infeasible';
@@ -116,7 +118,7 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
   if isequal(x,lastX), r=lastR; return; end
   a=lo+x.*width;
   try
-   r=sim_cycle_elastic_approx(a,p,tab,cfg,cfg.nodes);
+   r=simulate(a,p,tab,cfg,cfg.nodes);
    if r.body.distance<=0 || ~isfinite(r.objective), error('EFLM:Distance','Nonpositive travel'); end
   catch ME
    if ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end

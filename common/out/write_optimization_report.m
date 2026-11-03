@@ -10,7 +10,9 @@ if fid < 0
 end
 cleanup = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-fprintf(fid, 'EFLM elastic_approx optimization report\n');
+model='elastic_approx';
+if isfield(cfg,'model'), model=cfg.model; end
+fprintf(fid, 'EFLM %s optimization report\n',model);
 fprintf(fid, '========================================\n\n');
 fprintf(fid, 'Status              : %s\n', execution.status);
 fprintf(fid, 'Started (Asia/Tokyo): %s\n', execution.startedAt);
