@@ -43,13 +43,24 @@ polish=struct('required',true,'initialViolation',dense.maxViolation);
 stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
 active=[]; polish.passes=cell(0,1);
 % Keep a verified feasible incumbent; never replace it by a worse violation.
-% Slowing a candidate can increase vertical sag, so use the validated initial
-% posture as fallback rather than a heuristic speed reduction.
+% Slowing a candidate can increase vertical sag. Use the initial posture as
+% a fallback only when it also succeeds on the final high-density mesh.
 safe=(cfg.initial-lo)./width;
-safeDense=sim_cycle_elastic_approx(cfg.initial,p,tab,cfg,cfg.finalNodes);
-polish.feasibleBaseline=struct('x',cfg.initial,'maxViolation',safeDense.maxViolation);
+safeDense=[];
+polish.feasibleBaseline=struct('x',cfg.initial,'available',false,...
+ 'maxViolation',Inf,'failure','');
+try
+ safeDense=sim_cycle_elastic_approx(cfg.initial,p,tab,cfg,cfg.finalNodes);
+ polish.feasibleBaseline.available=true;
+ polish.feasibleBaseline.maxViolation=safeDense.maxViolation;
+catch ME
+ if ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end
+ % The user-supplied initial point is an optimizer seed, not a guaranteed
+ % high-density feasible fallback. Keep the optimized dense candidate.
+ polish.feasibleBaseline.failure=sprintf('%s: %s',ME.identifier,ME.message);
+end
 incumbent=best; incumbentDense=dense;
-if safeDense.maxViolation<=cfg.constraintTolerance
+if ~isempty(safeDense) && safeDense.maxViolation<=cfg.constraintTolerance
  incumbent=safe; incumbentDense=safeDense;
 end
 for pass=1:16
