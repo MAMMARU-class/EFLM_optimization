@@ -3,6 +3,7 @@ function result = optimize_two_stage(p,tab,cfg,folder)
 rng(cfg.seed,'twister'); initialRng=rng;
 simulate=@sim_cycle_elastic_approx;
 if isfield(cfg,'model') && strcmp(cfg.model,'elastic_exact'), simulate=@sim_cycle_elastic_exact; end
+if isfield(cfg,'model') && strcmp(cfg.model,'EFLM'), simulate=@sim_cycle_EFLM5; end
 history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
 stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
 stage=0; started=tic; stageClock=tic;
@@ -41,8 +42,32 @@ localElapsed=toc(stageClock);
 if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
 % Inspect the refined time mesh before reporting success. If necessary,
 % continue constrained refinement on that same dense mesh.
-dense=simulate(lo+best.*width,p,tab,cfg,cfg.finalNodes);
+denseFallback='';
+try
+ dense=simulate(lo+best.*width,p,tab,cfg,cfg.finalNodes);
+catch ME
+ if ~isfield(cfg,'model') || ~strcmp(cfg.model,'EFLM') || ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end
+ % The 5-coordinate assembly can lose its branch between coarse time nodes.
+ % Recover only from a genuinely feasible dense candidate, never a penalty.
+ good=history(history(:,11)<=cfg.constraintTolerance,:);
+ [~,order]=sort(good(:,8)); good=good(order,:);
+ candidates=[good(1:min(20,size(good,1)),3:7);cfg.initial]; recovered=false;
+ for candidateIndex=1:size(candidates,1)
+  try
+   trialDense=simulate(candidates(candidateIndex,:),p,tab,cfg,cfg.finalNodes);
+   if trialDense.maxViolation<=cfg.constraintTolerance
+    best=(candidates(candidateIndex,:)-lo)./width; dense=trialDense; recovered=true; break;
+   end
+  catch candidateError
+   if ~startsWith(candidateError.identifier,'EFLM:'), rethrow(candidateError); end
+  end
+ end
+ if ~recovered, rethrow(ME); end
+ denseFallback=ME.message;
+ localLo=max(0,best-cfg.localRadius); localHi=min(1,best+cfg.localRadius);
+end
 polish=struct('required',true,'initialViolation',dense.maxViolation);
+polish.denseFallback=denseFallback;
 stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
 active=[]; polish.passes=cell(0,1);
 % Keep a verified feasible incumbent; never replace it by a worse violation.

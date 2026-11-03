@@ -1,8 +1,8 @@
 function [result,folder] = main_elastic(model,overrides)
 % Shared optimization entry point. Requires MATLAB R2026b.
 if nargin<2, overrides=struct; end
-model=validatestring(model,{'approx','exact','elastic_approx','elastic_exact'});
-if ~startsWith(model,'elastic_'), model=['elastic_' model]; end
+model=validatestring(model,{'approx','exact','elastic_approx','elastic_exact','EFLM'});
+if ~startsWith(model,'elastic_') && ~strcmp(model,'EFLM'), model=['elastic_' model]; end
 validateattributes(overrides,{'struct'},{'scalar'},mfilename,'overrides');
 assert(strcmp(version('-release'),'2026b'),'Use MATLAB R2026b');
 root=fileparts(fileparts(fileparts(mfilename('fullpath'))));
@@ -20,6 +20,7 @@ if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
    'Restart MATLAB after installing the products.']);
 end
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'elastic_approx')),genpath(fullfile(root,'elastic_exact')));
+addpath(genpath(fullfile(root,'EFLM')));
 p=robot_parameters(); cfg=optimization_settings();
 for key=fieldnames(overrides)'
  if ~isfield(cfg,key{1})
@@ -55,19 +56,23 @@ if numel(stack)>1, execution.entryPoint=stack(2).name; else, execution.entryPoin
 copyfile(fullfile(root,'common'),fullfile(folder,'source','common'));
 copyfile(fullfile(root,'elastic_approx'),fullfile(folder,'source','elastic_approx'));
 copyfile(fullfile(root,'elastic_exact'),fullfile(folder,'source','elastic_exact'));
+if strcmp(model,'EFLM'), copyfile(fullfile(root,'EFLM'),fullfile(folder,'source','EFLM')); end
 copyfile(fullfile(root,'run_elastic_optimization.m'),fullfile(folder,'source','run_elastic_optimization.m'));
 copyfile(fullfile(root,'run_elastic_approx_optimization.m'),fullfile(folder,'source','run_elastic_approx_optimization.m'));
 [~,gitInfo]=system('git rev-parse HEAD');
 execution.gitCommit=strtrim(gitInfo);
 save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
 try
- if strcmp(model,'elastic_exact'), tab=build_exact_geometry_cache(p); else, tab=build_geometry_cache(p); end
+ if strcmp(model,'EFLM')
+  tab=build_eflm5_cache(p);
+ elseif strcmp(model,'elastic_exact'), tab=build_exact_geometry_cache(p); else, tab=build_geometry_cache(p); end
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
  result=optimize_two_stage(p,tab,cfg,folder);
  execution.status='completed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  execution.totalElapsed=toc(runTimer); result.execution=execution; result.gitCommit=execution.gitCommit;
  save(fullfile(folder,'result.mat'),'result','-v7.3');
  save_run_outputs(result,folder);
+ if strcmp(model,'EFLM'), save_EFLM5_outputs(result,folder); end
  if cfg.video, render_eflm_video(result,folder); end
  execution.totalElapsed=toc(runTimer); execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  result.execution=execution; save(fullfile(folder,'result.mat'),'result','-v7.3');

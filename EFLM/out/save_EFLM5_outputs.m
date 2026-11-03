@@ -1,0 +1,9 @@
+function save_EFLM5_outputs(result,folder)
+r=result.final;
+data=[r.body.t,r.generalizedCoordinates,r.generalizedVelocity,...
+ r.lagrangeResidual,r.additionalSpringTorque,r.additionalSpringPower,r.linearSpringEnergy];
+names={'t','x','z','hip','knee','ankle','vx','vz','hipRate','kneeRate','ankleRate',...
+ 'residualX_N','residualZ_N','residualHip_Nm','residualKnee_Nm','residualAnkle_Nm',...
+ 'extraHip_Nm','extraKnee_Nm','extraAnkle_Nm','extraPower_W','linearSpringEnergy_J'};
+writetable(array2table(data,'VariableNames',names),fullfile(folder,'generalized_state.csv'));
+end
