@@ -25,7 +25,7 @@ fprintf(fid, 'Git commit          : %s\n\n', execution.gitCommit);
 
 fprintf(fid, 'Optimization route\n');
 fprintf(fid, '------------------\n');
-fprintf(fid, '1. Broad MultiStart -> SQP/fmincon\n');
+fprintf(fid, '1. Broad MultiStart -> %s/fmincon\n', cfg.algorithm);
 fprintf(fid, '2. Narrow MultiStart around the broad-stage solution\n');
 fprintf(fid, '3. Dense trajectory check and active-time constrained refinement\n');
 fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and this report\n\n');
@@ -38,6 +38,7 @@ fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
 fprintf(fid, 'Narrow radius: %.6g of each scaled broad interval\n', cfg.localRadius);
+fprintf(fid, 'Local solver : %s/fmincon\n', cfg.algorithm);
 fprintf(fid, 'Random seed  : %d\n', cfg.seed);
 fprintf(fid, 'Stance nodes : %d (optimization), %d (final check)\n', cfg.nodes, cfg.finalNodes);
 fprintf(fid, 'Minimum times: stance %.6f s, flight %.6f s\n\n', ...

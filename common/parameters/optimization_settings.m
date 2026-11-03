@@ -6,6 +6,9 @@ cfg.upper=[50 deg2rad(35) 2 .90];
 cfg.initial=[.5 deg2rad(8) 2*.340*sin(deg2rad(8))/.2 .5];
 cfg.seed=20261103; cfg.starts=16; cfg.localStarts=5;
 cfg.localRadius=.15; cfg.nodes=121; cfg.finalNodes=1201;
+% R2026b Update 1 in this environment lacks the nlpSQP implementation
+% required by Algorithm='sqp'. The legacy SQP implementation is available.
+cfg.algorithm='sqp-legacy';
 cfg.maxIterations=120; cfg.maxEvaluations=1400;
 cfg.constraintTolerance=1e-5; cfg.stepTolerance=1e-7;
 cfg.stageSeconds=240; cfg.evaluationSeconds=5;

@@ -67,6 +67,7 @@ options.initial = [0.5, deg2rad(8), 0.473, 0.50];
 | `starts` | 16 | 広域MultiStartの開始点数 |
 | `localStarts` | 5 | 狭域MultiStartの開始点数 |
 | `localRadius` | 0.15 | 広域幅に対する狭域探索の片側幅 |
+| `algorithm` | `sqp-legacy` | MultiStart内で使うfminconアルゴリズム |
 | `seed` | 20261103 | 乱数シード |
 | `stageSeconds` | 240 s | 各探索段階の時間上限 |
 | `maxIterations` | 120 | 1回のSQPの最大反復数 |
@@ -106,7 +107,7 @@ options.localRadius = 0.10;
 |---:|---|
 | 1 | 指定された広域範囲をMultiStartで探索 |
 | 2 | 段階1の解を中心に狭域MultiStartを実行 |
-| 3 | 1201点の軌道で制約を再確認し、必要な時刻を追加してSQPで修正 |
+| 3 | 1201点の軌道で制約を再確認し、必要な時刻を追加してlegacy SQPで修正 |
 | 4 | 最終軌道、グラフ、動画、実行ソース、レポートを保存 |
 
 MultiStartは有限範囲内で複数の局所最適化を実行する方法です。数学的な大域最適性を保証するものではありません。最適解が探索上限・下限に近い場合は、`lower` と `upper` を広げて再実行します。
