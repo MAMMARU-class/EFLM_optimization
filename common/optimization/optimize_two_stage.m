@@ -2,6 +2,7 @@ function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
 history=zeros(0,10); failures=cell(0,2); lastX=[]; lastR=[];
+stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
 stage=0; started=tic; stageClock=tic;
 lo=cfg.lower; hi=cfg.upper; width=hi-lo;
 options=optimoptions('fmincon','Algorithm','sqp','Display','off',...
@@ -25,6 +26,7 @@ end
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(1,4),'ub',ones(1,4),'options',options);
 [xg,fg,eg,og,sg]=run(ms,problem,CustomStartPointSet(starts));
+globalElapsed=toc(stageClock);
 save(fullfile(folder,'global_checkpoint.mat'),'xg','fg','eg','og','sg','history','failures','cfg','p');
 if isempty(xg), error('EFLM:NoSolution','No global-stage solution; inspect global_checkpoint.mat'); end
 stage=2; stageClock=tic;
@@ -32,6 +34,7 @@ localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
 startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,4)];
 [xl,fl,el,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
+localElapsed=toc(stageClock);
 if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
 % Inspect the refined time mesh before reporting success. If necessary,
 % continue constrained refinement on that same dense mesh.
@@ -70,6 +73,11 @@ for pass=1:16
  if check.maxViolation<=cfg.constraintTolerance, break; end
 end
 best=incumbent;
+globalStats=multiStartStats(og,cfg.starts,globalElapsed,...
+ stageIterations(1),stageFunctionEvaluations(1),numel(sg));
+localStats=multiStartStats(ol,cfg.localStarts,localElapsed,...
+ stageIterations(2),stageFunctionEvaluations(2),numel(sl));
+polishStats=polishPassStats(polish.passes,toc(stageClock));
 result=struct('parameters',p,'settings',cfg,'geometryTable',tab,...
  'initialRng',initialRng,'finalRng',rng,'globalStartPoints',lo+starts.*width,...
  'localStartPoints',lo+startsLocal.*width,'globalBounds',[lo;hi],...
@@ -77,6 +85,7 @@ result=struct('parameters',p,'settings',cfg,'geometryTable',tab,...
  'global',struct('x',lo+xg.*width,'f',fg,'exitflag',eg,'output',og,'solutions',sg),...
  'local',struct('x',lo+xl.*width,'f',fl,'exitflag',el,'output',ol,'solutions',sl),...
  'polish',polish,...
+ 'stageStats',struct('global',globalStats,'local',localStats,'polish',polishStats),...
  'bestVariables',lo+best.*width,'history',history,'failures',{failures},'elapsed',toc(started));
 result.final=sim_cycle_elastic_approx(result.bestVariables,p,tab,cfg,cfg.finalNodes);
 result.valid=result.final.maxViolation<=cfg.constraintTolerance && ...
@@ -110,5 +119,34 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
  function f=objective(x), r=evaluate(x); f=r.objective; end
  function [c,ceq]=constraints(x), r=evaluate(x); c=r.constraintEnvelope; ceq=[]; end
  function [c,ceq]=activeConstraints(x), r=evaluate(x); c=r.constraints(active); ceq=[]; end
- function stop=stopSlow(~,~,~), stop=toc(stageClock)>cfg.stageSeconds; end
+ function stop=stopSlow(~,optimValues,state)
+  if strcmp(state,'done') && stage>=1 && stage<=3
+   stageIterations(stage)=stageIterations(stage)+optimValues.iteration;
+   if isfield(optimValues,'funccount')
+    stageFunctionEvaluations(stage)=stageFunctionEvaluations(stage)+optimValues.funccount;
+   end
+  end
+  stop=toc(stageClock)>cfg.stageSeconds;
+ end
+end
+
+function stats = multiStartStats(output, starts, elapsed, iterations, evaluations, distinctSolutions)
+successful=distinctSolutions;
+if isfield(output,'localSolverSuccess'), successful=output.localSolverSuccess; end
+actualStarts=starts;
+if isfield(output,'localSolverTotal'), actualStarts=output.localSolverTotal; end
+stats=struct('starts',actualStarts,'successfulStarts',successful,...
+ 'iterations',iterations,'functionEvaluations',evaluations,'elapsed',elapsed,...
+ 'distinctSolutions',distinctSolutions);
+end
+
+function stats = polishPassStats(passes, elapsed)
+stats=struct('starts',numel(passes),'successfulStarts',0,'iterations',0,...
+ 'functionEvaluations',0,'elapsed',elapsed);
+for i=1:numel(passes)
+ pass=passes{i};
+ if pass.exitflag>0, stats.successfulStarts=stats.successfulStarts+1; end
+ if isfield(pass.output,'iterations'), stats.iterations=stats.iterations+pass.output.iterations; end
+ if isfield(pass.output,'funcCount'), stats.functionEvaluations=stats.functionEvaluations+pass.output.funcCount; end
+end
 end

@@ -13,7 +13,6 @@ renderInfo=struct('direction','XDir reverse: positive simulation x displayed lef
  'flight','body only; leg hidden','rigidLinkColor','black','springColor','blue',...
  'playbackSpeed',playbackSpeed,'fps',cfg.fps,'createdAt',char(datetime('now')));
 save(fullfile(dest,'render_settings.mat'),'renderInfo');
-copyfile([mfilename('fullpath') '.m'],fullfile(dest,'render_eflm_video.m'));
 ax=axes(fig); hold(ax,'on');
 xlimits=[b.x(1)-.18,b.x(1)+cfg.cycles*b.distance+.18];
 plot(ax,xlimits,[0 0],'k-');
