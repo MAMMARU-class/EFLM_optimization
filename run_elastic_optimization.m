@@ -12,10 +12,10 @@ if useDefaults
     p = robot_parameters();
     overrides = struct;
     overrides.lower = [1, deg2rad(1), 0.4, 0.01, 0.22];
-    overrides.upper = [30, deg2rad(80), 7.0, 0.60, 0.32];
+    overrides.upper = [30, deg2rad(80), 7.0, 0.60, 0.34];
     overrides.initial = [4, deg2rad(50), 1.0, 0.10, p.leg];
     overrides.starts = 1000;
-    overrides.localStarts = 100;
+    overrides.localStarts = 200;
     % Objective: maximize w1*meanSpeed - w2*CoT.
     overrides.w1 = 2;
     overrides.w2 = 1;
