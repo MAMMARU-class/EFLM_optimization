@@ -3,9 +3,20 @@ function [result,folder] = main_elastic_approx(overrides)
 if nargin<1, overrides=struct; end
 validateattributes(overrides,{'struct'},{'scalar'},mfilename,'overrides');
 assert(strcmp(version('-release'),'2026b'),'Use MATLAB R2026b');
-assert(exist('fmincon','file')==2 && exist('MultiStart','class')==8,...
- 'EFLM:MissingToolbox','Install Optimization Toolbox and Global Optimization Toolbox for R2026b');
 root=fileparts(fileparts(mfilename('fullpath')));
+if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
+ % A running MATLAB session does not automatically acquire paths for
+ % products installed after that session was started. Rebuild the default
+ % R2026b path once, then restore this project's model paths.
+ restoredefaultpath;
+ rehash toolboxcache;
+ addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'elastic_approx')));
+end
+if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
+ error('EFLM:MissingToolbox',...
+  ['Optimization Toolbox or Global Optimization Toolbox is unavailable in R2026b. ' ...
+   'Restart MATLAB after installing the products.']);
+end
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'elastic_approx')));
 p=robot_parameters(); cfg=optimization_settings();
 for key=fieldnames(overrides)'
