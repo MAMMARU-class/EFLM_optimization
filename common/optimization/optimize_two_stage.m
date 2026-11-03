@@ -7,12 +7,21 @@ lo=cfg.lower; hi=cfg.upper; width=hi-lo;
 options=optimoptions('fmincon','Algorithm','sqp','Display','off',...
  'MaxIterations',cfg.maxIterations,'MaxFunctionEvaluations',cfg.maxEvaluations,...
  'ConstraintTolerance',cfg.constraintTolerance,'StepTolerance',cfg.stepTolerance,...
- 'FiniteDifferenceStepSize',1e-4,'OutputFcn',@stopSlow);
+ 'FiniteDifferenceStepSize',1e-6,'OutputFcn',@stopSlow);
 ms=MultiStart('Display','iter','UseParallel',false,'StartPointsToRun','all',...
  'MaxTime',cfg.stageSeconds);
 stage=1; stageClock=tic;
 x0=(cfg.initial-lo)./width;
 starts=[x0;rand(cfg.starts-1,4)];
+% Half of the starts sample plausible postures, retaining broad-box starts.
+% This is random MultiStart seeding, never a parameter grid search.
+count=floor((cfg.starts-1)/2);
+if count>0
+ angles=deg2rad(1+8*rand(count,1));
+ ts=cfg.minimumStance+.02*rand(count,1); tf=cfg.minimumFlight+.02*rand(count,1);
+ seeds=[rand(count,1),angles,2*p.leg*sin(angles)./ts,ts./(ts+tf)];
+ starts(2:count+1,:)=min(1,max(0,(seeds-lo)./width));
+end
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(1,4),'ub',ones(1,4),'options',options);
 [xg,fg,eg,og,sg]=run(ms,problem,CustomStartPointSet(starts));
@@ -27,12 +36,40 @@ if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
 % Inspect the refined time mesh before reporting success. If necessary,
 % continue constrained refinement on that same dense mesh.
 dense=sim_cycle_elastic_approx(lo+best.*width,p,tab,cfg,cfg.finalNodes);
-polish=struct('required',dense.maxViolation>cfg.constraintTolerance);
-if polish.required
- stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
- [best,polish.f,polish.exitflag,polish.output]=fmincon(@objective,best,[],[],[],[],...
-  localLo,localHi,@constraints,options);
+polish=struct('required',true,'initialViolation',dense.maxViolation);
+stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
+active=[]; polish.passes=cell(0,1);
+% Keep a verified feasible incumbent; never replace it by a worse violation.
+% Slowing a candidate can increase vertical sag, so use the validated initial
+% posture as fallback rather than a heuristic speed reduction.
+safe=(cfg.initial-lo)./width;
+safeDense=sim_cycle_elastic_approx(cfg.initial,p,tab,cfg,cfg.finalNodes);
+polish.feasibleBaseline=struct('x',cfg.initial,'maxViolation',safeDense.maxViolation);
+incumbent=best; incumbentDense=dense;
+if safeDense.maxViolation<=cfg.constraintTolerance
+ incumbent=safe; incumbentDense=safeDense;
 end
+for pass=1:16
+ % Constraint generation: selected time rows are smooth, unlike a time maximum.
+ for channel=1:size(dense.constraintChannels,2)
+  [~,idx]=maxk(dense.constraintChannels(:,channel),3);
+  active=[active;(channel-1)*cfg.nodes+idx]; %#ok<AGROW>
+ end
+ active=unique([active;(numel(dense.constraints)-2:numel(dense.constraints))']);
+ [candidate,fval,flag,out]=fmincon(@objective,best,[],[],[],[],localLo,localHi,...
+  @activeConstraints,options);
+ check=sim_cycle_elastic_approx(lo+candidate.*width,p,tab,cfg,cfg.finalNodes);
+ polish.passes{pass}=struct('x',lo+candidate.*width,'f',fval,'exitflag',flag,...
+  'output',out,'maxViolation',check.maxViolation,'activeIndices',active);
+ if check.maxViolation<=cfg.constraintTolerance && ...
+   (incumbentDense.maxViolation>cfg.constraintTolerance || check.objective<incumbentDense.objective)
+  incumbent=candidate; incumbentDense=check;
+ end
+ best=candidate;
+ dense=check;
+ if check.maxViolation<=cfg.constraintTolerance, break; end
+end
+best=incumbent;
 result=struct('parameters',p,'settings',cfg,'geometryTable',tab,...
  'initialRng',initialRng,'finalRng',rng,'globalStartPoints',lo+starts.*width,...
  'localStartPoints',lo+startsLocal.*width,'globalBounds',[lo;hi],...
@@ -46,7 +83,7 @@ result.valid=result.final.maxViolation<=cfg.constraintTolerance && ...
  max(abs(result.final.body.periodic))<1e-8 && result.final.body.distance>0;
 result.status='completed_but_infeasible';
 if result.valid, result.status='feasible_within_sampled_constraints'; end
-result.flightVisualization='Joint interpolation only; not simulated swing dynamics';
+result.flightVisualization='Ballistic body only; leg hidden in flight';
 result.globalOptimality='MultiStart does not certify global optimality; finite search box';
 result.boundaryDistance=min(best,1-best);
 result.matlabVersion=version; result.createdAt=char(datetime('now','TimeZone','Asia/Tokyo'));
@@ -62,7 +99,8 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
    if r.body.distance<=0 || ~isfinite(r.objective), error('EFLM:Distance','Nonpositive travel'); end
   catch ME
    if ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end
-   r=struct('objective',cfg.penalty+sum(x.^2),'constraints',ones(13*cfg.nodes+1,1),...
+   r=struct('objective',cfg.penalty+sum(x.^2),'constraints',ones(13*cfg.nodes+3,1),...
+    'constraintEnvelope',ones(16,1),...
     'maxViolation',1,'cot',NaN,'body',struct('speed',NaN),'success',false);
    failures(end+1,:)={a,ME.message};
   end
@@ -70,6 +108,7 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
   lastX=x; lastR=r;
  end
  function f=objective(x), r=evaluate(x); f=r.objective; end
- function [c,ceq]=constraints(x), r=evaluate(x); c=r.constraints; ceq=[]; end
+ function [c,ceq]=constraints(x), r=evaluate(x); c=r.constraintEnvelope; ceq=[]; end
+ function [c,ceq]=activeConstraints(x), r=evaluate(x); c=r.constraints(active); ceq=[]; end
  function stop=stopSlow(~,~,~), stop=toc(stageClock)>cfg.stageSeconds; end
 end

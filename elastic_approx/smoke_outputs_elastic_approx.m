@@ -7,7 +7,7 @@ p=robot_parameters(); cfg=optimization_settings(); tab=build_geometry_cache(p);
 cfg.cycles=1;
 result=struct('parameters',p,'settings',cfg,'bestVariables',cfg.initial,...
  'status','diagnostic_only_NOT_optimized','valid',false,...
- 'flightVisualization','Illustrative interpolation; not simulated swing dynamics');
+ 'flightVisualization','Ballistic body only; leg hidden in flight');
 result.final=sim_cycle_elastic_approx(cfg.initial,p,tab,cfg,cfg.finalNodes);
 folder=fullfile(root,'_logs','elastic_approx',char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
 mkdir(folder); save(fullfile(folder,'diagnostic_result.mat'),'result','-v7.3');

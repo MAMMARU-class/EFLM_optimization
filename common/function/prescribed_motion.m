@@ -2,7 +2,8 @@ function b = prescribed_motion(a,p,n)
 % Exact integration of m*xdd=Fx, m*zdd=Fz-m*g; toe fixed at world origin.
 A=a(1); alpha=a(2); v=a(3); D=a(4);
 Ts=2*p.leg*sin(alpha)/v; Tf=Ts*(1/D-1); T=Ts+Tf;
-t=linspace(0,Ts,n)'; w=pi/Ts; B=pi*p.m*p.g/(2*D);
+% Cluster time nodes near touchdown/liftoff to resolve preload activation.
+t=Ts*(1-cos(linspace(0,pi,n)'))/2; w=pi/Ts; B=pi*p.m*p.g/(2*D);
 x0=-p.leg*sin(alpha); z0=p.leg*cos(alpha); vz0=-p.g*Tf/2;
 Fx=-A*sin(2*w*t); Fz=B*sin(w*t);
 vx=v+A/(2*w*p.m)*(cos(2*w*t)-1);

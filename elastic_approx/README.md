@@ -24,16 +24,21 @@ not a grid search over optimization variables. Joint rates follow implicit diffe
 motor torques use equations (17) and (18). The full Jacobian and residuals are saved.
 
 Broad and narrow stages both use MATLAB MultiStart with SQP/fmincon. Variables are scaled
-to the unit box. The initial broad bounds are `[0 N, 3 deg, .15 m/s, .45]` through
-`[20 N, 25 deg, 2.5 m/s, .90]`. The narrow box is +/-15% of each broad interval about
+to the unit box. The broad bounds are `[0 N, .5 deg, .03 m/s, .10]` through
+`[50 N, 35 deg, 2 m/s, .90]`.
+Both stance and flight must last at least 0.2 seconds. The narrow box is +/-15% of each broad interval about
 the broad-stage solution. Defaults are 16 and 5 starts, seed 20261103. This does not
 certify an unrestricted global optimum. Bound proximity is recorded for review.
 
-Reference leg length is 0.300 m. The initially proposed 0.277 m made even a 3-degree
-touchdown violate the 55-degree hip lower limit, independent of speed. The revised length
-admits the starting point `[2.5 N, 5 deg, .8 m/s, .8]` in the high-density diagnostic.
-Final constraints are checked on 1201 stance nodes; a violated dense mesh triggers an
-additional constrained refinement. Feasibility between sample times is not certified.
+Reference leg length is 0.340 m. The added minimum durations made the 0.300 m initial
+posture violate the hip lower limit during midstance; the new nominal length admits
+`[.5 N, 8 deg, 2*.340*sin(8 deg)/.2 m/s, .5]` with both durations 0.2 s.
+Physical link lengths remain unchanged. Time nodes cluster near touchdown/liftoff.
+Broad/narrow optimization uses the maximum sampled violation for each constraint type.
+Final refinement selects individual active time constraints and adds new violated times,
+avoiding the large SQP subproblems of a full time-by-constraint matrix. A validated
+feasible incumbent is preserved. Final constraints are checked on 1201 stance nodes;
+feasibility between sample times is not certified.
 
 The solver stops a failed candidate and returns a penalty. Unexpected programming errors
 are rethrown. Each stage has a wall-time budget; each candidate has a separate budget.
@@ -54,8 +59,10 @@ recreate_outputs(fullfile(folder,'result.mat'));
 
 The MP4 depicts the EFLM closed-link shape. The approximate SLIP geometry and exact
 closed-link rendering differ by the approximation error, saved in `exactToeResidual`.
-Flight body motion is ballistic; flight joint interpolation is explicitly illustrative,
-excluded from energy and constraint evaluation. No swing dynamic feasibility is claimed.
+Flight body motion is ballistic and the leg is hidden during flight. The display x axis
+is reversed for leftward motion without changing simulation coordinates. Rigid links
+are black; the elastic link is a blue zigzag spring, following the old renderer.
+No swing dynamic feasibility is claimed.
 
 `smoke_outputs_elastic_approx` checks serialization/plot/video without either optimization
 toolbox and writes `diagnostic_result.mat`, explicitly marked **NOT optimized**.
