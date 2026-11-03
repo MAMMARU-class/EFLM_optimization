@@ -1,7 +1,7 @@
 function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
-history=zeros(0,10); failures=cell(0,2); lastX=[]; lastR=[];
+history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
 stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
 stage=0; started=tic; stageClock=tic;
 lo=cfg.lower; hi=cfg.upper; width=hi-lo;
@@ -13,18 +13,19 @@ ms=MultiStart('Display','iter','UseParallel',false,'StartPointsToRun','all',...
  'MaxTime',cfg.stageSeconds);
 stage=1; stageClock=tic;
 x0=(cfg.initial-lo)./width;
-starts=[x0;rand(cfg.starts-1,4)];
+starts=[x0;rand(cfg.starts-1,5)];
 % Half of the starts sample plausible postures, retaining broad-box starts.
 % This is random MultiStart seeding, never a parameter grid search.
 count=floor((cfg.starts-1)/2);
 if count>0
  angles=deg2rad(1+8*rand(count,1));
  ts=cfg.minimumStance+.02*rand(count,1); tf=cfg.minimumFlight+.02*rand(count,1);
- seeds=[rand(count,1),angles,2*p.leg*sin(angles)./ts,ts./(ts+tf)];
+ lengths=lo(5)+(hi(5)-lo(5))*rand(count,1);
+ seeds=[rand(count,1),angles,2*lengths.*sin(angles)./ts,ts./(ts+tf),lengths];
  starts(2:count+1,:)=min(1,max(0,(seeds-lo)./width));
 end
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
- 'nonlcon',@constraints,'lb',zeros(1,4),'ub',ones(1,4),'options',options);
+ 'nonlcon',@constraints,'lb',zeros(1,5),'ub',ones(1,5),'options',options);
 [xg,fg,eg,og,sg]=run(ms,problem,CustomStartPointSet(starts));
 globalElapsed=toc(stageClock);
 save(fullfile(folder,'global_checkpoint.mat'),'xg','fg','eg','og','sg','history','failures','cfg','p');
@@ -32,7 +33,7 @@ if isempty(xg), error('EFLM:NoSolution','No global-stage solution; inspect globa
 stage=2; stageClock=tic;
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
-startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,4)];
+startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,5)];
 [xl,fl,el,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
 localElapsed=toc(stageClock);
 if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
@@ -108,7 +109,7 @@ result.globalOptimality='MultiStart does not certify global optimality; finite s
 result.boundaryDistance=min(best,1-best);
 result.matlabVersion=version; result.createdAt=char(datetime('now','TimeZone','Asia/Tokyo'));
 save(fullfile(folder,'result.mat'),'result','-v7.3');
-writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL','v','Duty',...
+writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL','v','Duty','r0',...
  'objective','speed','CoT','maxViolation'}),fullfile(folder,'optimization_history.csv'));
 
  function r=evaluate(x)

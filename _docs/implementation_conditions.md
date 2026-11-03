@@ -4,14 +4,14 @@
 
 - 実装は MATLAB を用い、`elastic_approx` から開始する。
 - 物理量はSI単位系で統一し、速度は常に m/s とする。
-- 最適化変数は $[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty}]$ とする。
+- 最適化変数は $[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty},r_0]$ とする。
 - 床反力波形と立脚・遊脚時間の構成は `urls` を参考にする。
 - 運動方程式、座標、力とトルクの符号は `equation_of_motion.md` を正とする。
 - 目的関数は $J_{\mathrm{cost}}=10J_{\mathrm{vel}}-\mathrm{CoT}$ とし、`fmincon` ではその負値を最小化する。
 - 速度に独立の制約は設けない。
 - 遊脚期は胴体の弾道計算だけを行う。脚の多体系運動は後の段階で追加する。
 - ロボットの数値パラメータは `sim_env_EFLM_old` を正とし、そこから回収する。
-- 立脚基準脚長は $L_{\mathrm{stance}}=0.340\ \mathrm{m}$ とする。0.277 mから0.300 mへ一度修正した後、立脚・遊脚各0.2秒以上の追加条件下で初期候補の股関節制約を満たすよう0.340 mへ調整した。物理リンク寸法は変更しない。
+- 初期脚長 $r_0=r(0)$ を0.25～0.34 mの範囲で最適化する。物理リンク寸法は固定する。残差と高さ制約の正規化には固定長 `p.lengthScale=0.295 m` を用いる。`p.leg` は初期候補の脚長だけを指定する。
 - 立脚時間、遊脚時間はそれぞれ0.2秒以上とし、最適化の不等式制約として課す。
 - 広域・狭域の両段階でMultiStartを使い、最終的に高密度軌道の制約を再検査する。現在の具体的設定は `common/parameters/optimization_settings.m` を参照する。
 - 保存先は `_logs/elastic_approx/<日時>/`。動画は左向きに進行し、遊脚中の脚は描かない。剛体リンクは黒、ばねリンクは青いばね形状で表示する。
@@ -35,7 +35,7 @@
 入力：
 
 $$
-\boldsymbol p=[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty}]
+\boldsymbol p=[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty},r_0]
 $$
 
 出力：
@@ -61,7 +61,7 @@ $$
 以下はコード構造を作る妨げにはならないが、最適化を実行して結果を比較する前に確定する必要がある。
 
 1. 最適化変数の初期値
-   - `urls` の実行結果を基準に、$[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty}]$ の初期値を後で選定する。
+   - `urls` の実行結果を基準に、$[\mathrm{Amp}_h,\theta_L,v,\mathrm{Duty},r_0]$ の初期値を選定する。`r_0` の既定初期値は `p.leg` を使う。
    - 人為的な狭い探索範囲は設けないが、$\mathrm{Amp}_h\ge0$、$v>0$、$0<\mathrm{Duty}<1$、$0<\theta_L<\pi/2$ の定義域は守る。
 2. 予圧立ち上がり幅
    - $\delta_e=0.05\ \mathrm{mm}$ を初期値とし、DAEと最適化の安定性を確認して最終値を固定する。

@@ -25,9 +25,10 @@ for key=fieldnames(overrides)'
  end
  cfg.(key{1})=overrides.(key{1});
 end
-validateattributes(cfg.lower,{'numeric'},{'row','numel',4,'real','finite'});
-validateattributes(cfg.upper,{'numeric'},{'row','numel',4,'real','finite'});
-validateattributes(cfg.initial,{'numeric'},{'row','numel',4,'real','finite'});
+validateattributes(cfg.lower,{'numeric'},{'row','numel',5,'real','finite'});
+validateattributes(cfg.upper,{'numeric'},{'row','numel',5,'real','finite'});
+validateattributes(cfg.initial,{'numeric'},{'row','numel',5,'real','finite'});
+validateattributes(cfg.lower(5),{'numeric'},{'positive'});
 validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
 if cfg.w1==0 && cfg.w2==0

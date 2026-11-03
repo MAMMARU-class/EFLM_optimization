@@ -28,4 +28,5 @@ p.rpmLimit=415;
 p.tnSlope=.0692308; 
 
 p.leg=.290;
+p.lengthScale=(.25+.34)/2; % Fixed numerical normalization, not optimized r0.
 end

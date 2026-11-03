@@ -37,6 +37,7 @@ _logs/elastic_approx/YYYYMMDD_HHMMSS_SSS/
 | 2 | `thetaL` | 接地脚角度 | rad |
 | 3 | `v` | 初期水平速度 | m/s |
 | 4 | `Duty` | 立脚時間比 | - |
+| 5 | `r0` | 接地開始時の脚長 | m |
 
 既定の広域探索範囲は次のとおりです。
 
@@ -44,16 +45,17 @@ _logs/elastic_approx/YYYYMMDD_HHMMSS_SSS/
 |---|---:|---:|---:|
 | `AmpH` | 0 N | 50 N | 0.5 N |
 | `thetaL` | 0.5 deg | 35 deg | 8 deg |
-| `v` | 0.03 m/s | 2.0 m/s | 約0.473 m/s |
+| `v` | 0.03 m/s | 2.0 m/s | `2*p.leg*sin(8 deg)/0.2`（約0.404 m/s） |
 | `Duty` | 0.10 | 0.90 | 0.50 |
+| `r0` | 0.25 m | 0.34 m | `robot_parameters().leg`（現在0.290 m） |
 
 任意の探索範囲へ上書きする例です。角度だけは `deg2rad` でradへ変換します。
 
 ```matlab
 options = struct;
-options.lower = [0,  deg2rad(1),  0.10, 0.20];
-options.upper = [30, deg2rad(25), 1.50, 0.80];
-options.initial = [0.5, deg2rad(8), 0.473, 0.50];
+options.lower = [0,  deg2rad(1),  0.10, 0.20, 0.25];
+options.upper = [30, deg2rad(25), 1.50, 0.80, 0.34];
+options.initial = [0.5, deg2rad(8), 0.473, 0.50, 0.29];
 options.w1 = 10;  % 平均速度の重み
 options.w2 = 1;   % CoTの重み
 
@@ -61,6 +63,8 @@ options.w2 = 1;   % CoTの重み
 ```
 
 `initial` は必ず `lower` と `upper` の間に置きます。指定していない項目は既定値が使われます。
+
+`r0` により初期位置と立脚時間を計算します：`x0=-r0*sin(thetaL)`、`z0=r0*cos(thetaL)`、`Ts=2*r0*sin(thetaL)/v`。リンク寸法は固定です。正規化には `p.lengthScale=0.295 m`（指定範囲0.25～0.34 mの中央値）を固定して使います。`p.leg` は初期候補の脚長を与えるだけで、探索中の脚長は5番目の変数で決まります。
 
 ## MultiStartの設定を変更する
 
@@ -82,9 +86,9 @@ options.w2 = 1;   % CoTの重み
 探索範囲と開始点数を同時に変える例です。
 
 ```matlab
-options.lower = [0, deg2rad(2), 0.10, 0.25];
-options.upper = [20, deg2rad(20), 1.20, 0.75];
-options.initial = [0.5, deg2rad(8), 0.473, 0.50];
+options.lower = [0, deg2rad(2), 0.10, 0.25, 0.25];
+options.upper = [20, deg2rad(20), 1.20, 0.75, 0.34];
+options.initial = [0.5, deg2rad(8), 0.473, 0.50, 0.29];
 options.starts = 32;
 options.localStarts = 10;
 options.localRadius = 0.10;

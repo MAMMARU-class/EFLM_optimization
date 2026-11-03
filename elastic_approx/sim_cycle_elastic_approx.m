@@ -20,13 +20,13 @@ for it=1:60
  if any(abs(detj)<1e-6), error('EFLM:Singular','Algebraic Jacobian singular'); end
  dk=(dd.*e1-bb.*e2)./detj; ds=(-cc.*e1+aa.*e2)./detj;
  scale=max(1,max(abs(dk)/.10,abs(ds)/.003));
- merit=(e1/p.leg).^2+(e2/(p.ks*p.smax)).^2;
+ merit=(e1/p.lengthScale).^2+(e2/(p.ks*p.smax)).^2;
  factor=1./scale;
  for backtrack=1:18
   kt=k-factor.*dk; st=s-factor.*ds;
   et1=ppval(tab.l,kt)-ppval(tab.f,kt).*st-rad;
   et2=spring_response(st,p)-Fr.*ppval(tab.f,kt)-Tr.*ppval(tab.g,kt);
-  trial=(et1/p.leg).^2+(et2/(p.ks*p.smax)).^2;
+  trial=(et1/p.lengthScale).^2+(et2/(p.ks*p.smax)).^2;
   bad=trial>merit & merit>1e-22;
   if ~any(bad), break; end
   factor(bad)=factor(bad)/2;
@@ -57,7 +57,7 @@ cot=energy/(p.m*p.g*b.distance);
 % Fixed-dimensional smooth inequality samples, c<=0. Speed-domain positivity included.
 channels=[(tau-hi)/p.tauMax,(lo-tau)/p.tauMax,...
  [h,k]-p.jointUpper,p.jointLower-[h,k],...
- (s-p.smax)/p.smax,-s/p.smax,(abs(rpm)-p.rpmLimit)/p.rpmLimit,-b.z/p.leg];
+ (s-p.smax)/p.smax,-s/p.smax,(abs(rpm)-p.rpmLimit)/p.rpmLimit,-b.z/p.lengthScale];
 durationConstraints=[(cfg.minimumStance-b.Ts)/cfg.minimumStance;...
  (cfg.minimumFlight-b.Tf)/cfg.minimumFlight];
 c=[channels(:);-b.distance;durationConstraints];

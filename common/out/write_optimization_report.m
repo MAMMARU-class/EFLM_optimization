@@ -30,7 +30,7 @@ fprintf(fid, '2. Narrow MultiStart around the broad-stage solution\n');
 fprintf(fid, '3. Dense trajectory check and active-time constrained refinement\n');
 fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and this report\n\n');
 
-fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-])\n');
+fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m])\n');
 fprintf(fid, '---------------------------------------------------------------\n');
 fprintf(fid, 'Lower bounds : %s\n', rowText(cfg.lower));
 fprintf(fid, 'Upper bounds : %s\n', rowText(cfg.upper));
@@ -74,6 +74,7 @@ fprintf(fid, 'Final result\n');
 fprintf(fid, '------------\n');
 fprintf(fid, 'Result status        : %s\n', result.status);
 fprintf(fid, 'Variables            : %s\n', rowText(result.bestVariables));
+fprintf(fid, 'Initial leg length [m]: %.12g\n', b.r0);
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);
