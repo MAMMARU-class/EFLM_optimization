@@ -9,9 +9,10 @@ cfg.localRadius=.15; cfg.nodes=121; cfg.finalNodes=1201;
 % R2026b Update 1 in this environment lacks the nlpSQP implementation
 % required by Algorithm='sqp'. The legacy SQP implementation is available.
 cfg.algorithm='sqp-legacy';
+cfg.w1=10; cfg.w2=1;
 cfg.maxIterations=120; cfg.maxEvaluations=1400;
 cfg.constraintTolerance=1e-5; cfg.stepTolerance=1e-7;
-cfg.stageSeconds=240; cfg.evaluationSeconds=5;
+cfg.stageSeconds=12*60*60; cfg.evaluationSeconds=5;
 cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
 cfg.minimumStance=.2; cfg.minimumFlight=.2;

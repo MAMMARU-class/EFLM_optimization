@@ -54,6 +54,8 @@ options = struct;
 options.lower = [0,  deg2rad(1),  0.10, 0.20];
 options.upper = [30, deg2rad(25), 1.50, 0.80];
 options.initial = [0.5, deg2rad(8), 0.473, 0.50];
+options.w1 = 10;  % 平均速度の重み
+options.w2 = 1;   % CoTの重み
 
 [result, folder] = run_elastic_approx_optimization(options);
 ```
@@ -68,8 +70,10 @@ options.initial = [0.5, deg2rad(8), 0.473, 0.50];
 | `localStarts` | 5 | 狭域MultiStartの開始点数 |
 | `localRadius` | 0.15 | 広域幅に対する狭域探索の片側幅 |
 | `algorithm` | `sqp-legacy` | MultiStart内で使うfminconアルゴリズム |
+| `w1` | 10 | 平均速度 [m/s] に掛ける重み |
+| `w2` | 1 | CoTに掛ける重み |
 | `seed` | 20261103 | 乱数シード |
-| `stageSeconds` | 240 s | 各探索段階の時間上限 |
+| `stageSeconds` | 43200 s（12時間） | 広域・狭域それぞれの時間上限 |
 | `maxIterations` | 120 | 1回のSQPの最大反復数 |
 | `maxEvaluations` | 1400 | 1回のSQPの最大評価回数 |
 | `nodes` | 121 | 最適化中の立脚評価点数 |
@@ -84,9 +88,13 @@ options.initial = [0.5, deg2rad(8), 0.473, 0.50];
 options.starts = 32;
 options.localStarts = 10;
 options.localRadius = 0.10;
+options.w1 = 5;
+options.w2 = 1;
 
 [result, folder] = run_elastic_approx_optimization(options);
 ```
+
+最大化する評価値は `w1 * 平均速度 - w2 * CoT` です。`fmincon`には符号を反転した `w2 * CoT - w1 * 平均速度` を渡します。重みを変えると最適化の優先度が変わり、別の解になることがあります。
 
 すべての既定値は [optimization_settings.m](../common/parameters/optimization_settings.m) にあります。通常はこのファイルを書き換えず、プロジェクト直下の実行関数へ `options` を渡します。
 

@@ -39,6 +39,8 @@ fprintf(fid, 'Broad starts : %d\n', cfg.starts);
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
 fprintf(fid, 'Narrow radius: %.6g of each scaled broad interval\n', cfg.localRadius);
 fprintf(fid, 'Local solver : %s/fmincon\n', cfg.algorithm);
+fprintf(fid, 'Objective    : maximize w1*meanSpeed - w2*CoT\n');
+fprintf(fid, 'Weights      : w1=%.12g, w2=%.12g\n', cfg.w1, cfg.w2);
 fprintf(fid, 'Random seed  : %d\n', cfg.seed);
 fprintf(fid, 'Stance nodes : %d (optimization), %d (final check)\n', cfg.nodes, cfg.finalNodes);
 fprintf(fid, 'Minimum times: stance %.6f s, flight %.6f s\n\n', ...

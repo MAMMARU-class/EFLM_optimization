@@ -28,6 +28,11 @@ end
 validateattributes(cfg.lower,{'numeric'},{'row','numel',4,'real','finite'});
 validateattributes(cfg.upper,{'numeric'},{'row','numel',4,'real','finite'});
 validateattributes(cfg.initial,{'numeric'},{'row','numel',4,'real','finite'});
+validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
+validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
+if cfg.w1==0 && cfg.w2==0
+ error('EFLM:ObjectiveWeights','At least one objective weight must be positive.');
+end
 if any(cfg.lower>=cfg.upper), error('EFLM:Bounds','Every lower bound must be below its upper bound.'); end
 if any(cfg.initial<cfg.lower|cfg.initial>cfg.upper)
  error('EFLM:InitialPoint','Initial point must lie inside the broad search bounds.');
