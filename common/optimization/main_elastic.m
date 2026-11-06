@@ -44,6 +44,7 @@ end
 cfg.model=model;
 folder=fullfile(root,'_logs',model,char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
 mkdir(folder); diary(fullfile(folder,'run.log')); dc=onCleanup(@()diary('off'));
+prepare_optimization_pool(cfg);
 runTimer=tic;
 stack=dbstack;
 execution=struct;

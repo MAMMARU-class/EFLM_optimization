@@ -1,20 +1,23 @@
 function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
+prepare_optimization_pool(cfg);
 simulate=@sim_cycle_elastic_approx;
 if isfield(cfg,'model') && strcmp(cfg.model,'elastic_exact'), simulate=@sim_cycle_elastic_exact; end
 if isfield(cfg,'model') && strcmp(cfg.model,'EFLM'), simulate=@sim_cycle_EFLM5; end
+messages=[];
+if cfg.useParallel, messages=parallel.pool.PollableDataQueue; end
 history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
 stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
-stage=0; started=tic; stageClock=tic;
+stage=0; started=tic; stageClock=tic; runWall=now; stageWall=now;
 lo=cfg.lower; hi=cfg.upper; width=hi-lo;
 options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
  'MaxIterations',cfg.maxIterations,'MaxFunctionEvaluations',cfg.maxEvaluations,...
  'ConstraintTolerance',cfg.constraintTolerance,'StepTolerance',cfg.stepTolerance,...
  'FiniteDifferenceStepSize',1e-6,'OutputFcn',@stopSlow);
-ms=MultiStart('Display','iter','UseParallel',false,'StartPointsToRun','all',...
+ms=MultiStart('Display','iter','UseParallel',cfg.useParallel,'StartPointsToRun','all',...
  'MaxTime',cfg.stageSeconds);
-stage=1; stageClock=tic;
+stage=1; stageClock=tic; stageWall=now;
 x0=(cfg.initial-lo)./width;
 starts=[x0;rand(cfg.starts-1,5)];
 % Half of the starts sample plausible postures, retaining broad-box starts.
@@ -30,14 +33,16 @@ end
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(1,5),'ub',ones(1,5),'options',options);
 [xg,fg,eg,og,sg]=run(ms,problem,CustomStartPointSet(starts));
+collectMessages();
 globalElapsed=toc(stageClock);
 save(fullfile(folder,'global_checkpoint.mat'),'xg','fg','eg','og','sg','history','failures','cfg','p');
 if isempty(xg), error('EFLM:NoSolution','No global-stage solution; inspect global_checkpoint.mat'); end
-stage=2; stageClock=tic;
+stage=2; stageClock=tic; stageWall=now;
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
 startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,5)];
 [xl,fl,el,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
+collectMessages();
 localElapsed=toc(stageClock);
 if ~isempty(xl) && fl<fg, best=xl; else, best=xg; end
 % Inspect the refined time mesh before reporting success. If necessary,
@@ -68,7 +73,7 @@ catch ME
 end
 polish=struct('required',true,'initialViolation',dense.maxViolation);
 polish.denseFallback=denseFallback;
-stage=3; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[];
+stage=3; stageClock=tic; stageWall=now; cfg.nodes=cfg.finalNodes; lastX=[];
 active=[]; polish.passes=cell(0,1);
 % Keep a verified feasible incumbent; never replace it by a worse violation.
 % Slowing a candidate can increase vertical sag. Use the initial posture as
@@ -142,6 +147,7 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
  function r=evaluate(x)
   if isequal(x,lastX), r=lastR; return; end
   a=lo+x.*width;
+  failure='';
   try
    r=simulate(a,p,tab,cfg,cfg.nodes);
    if r.body.distance<=0 || ~isfinite(r.objective), error('EFLM:Distance','Nonpositive travel'); end
@@ -150,9 +156,15 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
    r=struct('objective',cfg.penalty+sum(x.^2),'constraints',ones(13*cfg.nodes+3,1),...
     'constraintEnvelope',ones(16,1),...
     'maxViolation',1,'cot',NaN,'body',struct('speed',NaN),'success',false);
-   failures(end+1,:)={a,ME.message};
+   failure=ME.message;
   end
-  history(end+1,:)=[stage,toc(started),a,r.objective,r.body.speed,r.cot,r.maxViolation];
+  row=[stage,(now-runWall)*86400,a,r.objective,r.body.speed,r.cot,r.maxViolation];
+  if cfg.useParallel && ~isempty(getCurrentTask())
+   send(messages,struct('kind','evaluation','row',row,'failure',failure));
+  else
+   history(end+1,:)=row;
+   if ~isempty(failure), failures(end+1,:)={a,failure}; end
+  end
   lastX=x; lastR=r;
  end
  function f=objective(x), r=evaluate(x); f=r.objective; end
@@ -160,12 +172,32 @@ writetable(array2table(history,'VariableNames',{'stage','seconds','AmpH','thetaL
  function [c,ceq]=activeConstraints(x), r=evaluate(x); c=r.constraints(active); ceq=[]; end
  function stop=stopSlow(~,optimValues,state)
   if strcmp(state,'done') && stage>=1 && stage<=3
-   stageIterations(stage)=stageIterations(stage)+optimValues.iteration;
-   if isfield(optimValues,'funccount')
-    stageFunctionEvaluations(stage)=stageFunctionEvaluations(stage)+optimValues.funccount;
+   count=0;
+   if isfield(optimValues,'funccount'), count=optimValues.funccount; end
+   if cfg.useParallel && ~isempty(getCurrentTask())
+    send(messages,struct('kind','stats','stage',stage,...
+     'iterations',optimValues.iteration,'evaluations',count));
+   else
+    stageIterations(stage)=stageIterations(stage)+optimValues.iteration;
+    stageFunctionEvaluations(stage)=stageFunctionEvaluations(stage)+count;
    end
   end
-  stop=toc(stageClock)>cfg.stageSeconds;
+  stop=(now-stageWall)*86400>cfg.stageSeconds;
+ end
+ function collectMessages()
+  if ~cfg.useParallel, return; end
+  while true
+   msg=poll(messages,1);
+   if isempty(msg), break; end
+   if strcmp(msg.kind,'evaluation')
+    history(end+1,:)=msg.row;
+    if ~isempty(msg.failure), failures(end+1,:)={msg.row(3:7),msg.failure}; end
+   else
+    stageIterations(msg.stage)=stageIterations(msg.stage)+msg.iterations;
+    stageFunctionEvaluations(msg.stage)=stageFunctionEvaluations(msg.stage)+msg.evaluations;
+   end
+  end
+  history=sortrows(history,[1 2]);
  end
 end
 

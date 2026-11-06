@@ -70,13 +70,33 @@ fprintf(fid, '\nEvaluation history rows by stage: broad=%d, narrow=%d, refinemen
     sum(result.history(:,1)==1), sum(result.history(:,1)==2), sum(result.history(:,1)==3));
 fprintf(fid, 'Failed candidate evaluations: %d\n\n', size(result.failures,1));
 
+totalOptimizationTime = result.stageStats.global.elapsed ...
+    + result.stageStats.local.elapsed + result.stageStats.polish.elapsed;
+totalOptimizationIterations = result.stageStats.global.iterations ...
+    + result.stageStats.local.iterations + result.stageStats.polish.iterations;
+if totalOptimizationIterations > 0
+    averageIterationTime = totalOptimizationTime / totalOptimizationIterations;
+else
+    averageIterationTime = NaN;
+end
+fprintf(fid, 'Model processing time\n');
+fprintf(fid, '---------------------\n');
+fprintf(fid, 'Total optimization time [s]       : %.6f\n', totalOptimizationTime);
+fprintf(fid, 'Total optimization iterations     : %d\n', totalOptimizationIterations);
+fprintf(fid, 'Average time per iteration [s]    : %.9f\n\n', averageIterationTime);
+
 r = result.final;
 b = r.body;
+a = result.bestVariables;
 fprintf(fid, 'Final result\n');
 fprintf(fid, '------------\n');
 fprintf(fid, 'Result status        : %s\n', result.status);
-fprintf(fid, 'Variables            : %s\n', rowText(result.bestVariables));
-fprintf(fid, 'Initial leg length [m]: %.12g\n', b.r0);
+fprintf(fid, 'Optimized initial parameters\n');
+fprintf(fid, '  Horizontal force amplitude AmpH [N]  : %.12g\n', a(1));
+fprintf(fid, '  Touchdown angle thetaL [rad]         : %.12g\n', a(2));
+fprintf(fid, '  Initial horizontal velocity v [m/s]  : %.12g\n', a(3));
+fprintf(fid, '  Duty factor [-]                      : %.12g\n', a(4));
+fprintf(fid, '  Initial leg length r0 [m]            : %.12g\n', a(5));
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);

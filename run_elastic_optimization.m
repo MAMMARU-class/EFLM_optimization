@@ -16,6 +16,8 @@ if useDefaults
     overrides.initial = [4, deg2rad(50), 1.0, 0.10, p.leg];
     overrides.starts = 1000;
     overrides.localStarts = 200;
+    overrides.useParallel = true;
+    overrides.parallelWorkers = 16;
     % Objective: maximize w1*meanSpeed - w2*CoT.
     overrides.w1 = 2;
     overrides.w2 = 1;
