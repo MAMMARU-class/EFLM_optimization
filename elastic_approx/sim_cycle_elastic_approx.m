@@ -36,9 +36,29 @@ for it=1:60
  if toc(watch)>cfg.evaluationSeconds, error('EFLM:Timeout','Evaluation exceeded time budget'); end
 end
 if ~converged, error('EFLM:Convergence','Algebraic equilibrium did not converge'); end
+% At the preloaded-length stop, the unilateral reaction carries the part of
+% preload that cannot be balanced by the external generalized force.
+atStop=s<0;
+if any(atStop)
+ s(atStop)=0;
+ k(atStop)=ppval(tab.inverse,rad(atStop));
+ for j=1:4
+  k(atStop)=k(atStop)-(ppval(tab.l,k(atStop))-rad(atStop))./ppval(tab.ld,k(atStop));
+ end
+ l=ppval(tab.l,k); ld=ppval(tab.ld,k);
+ f=ppval(tab.f,k); fd=ppval(tab.fd,k); g=ppval(tab.g,k); gd=ppval(tab.gd,k);
+ [Fs,K]=spring_response(s,p);
+ e1=l-f.*s-rad;
+ e2=Fs-Fr.*f-Tr.*g;
+end
+stopReaction=zeros(n,1);
+stopReaction(atStop)=e2(atStop);
+if any(stopReaction< -1e-8), error('EFLM:Stop','Invalid preload stop reaction'); end
+e2(atStop)=e2(atStop)-stopReaction(atStop);
 aa=ld-fd.*s; bb=-f; cc=-Fr.*fd-Tr.*gd; detj=aa.*K-bb.*cc;
 rhs2=Frd.*f+Trd.*g;
 kd=(K.*rd-bb.*rhs2)./detj; sd=(-cc.*rd+aa.*rhs2)./detj;
+kd(atStop)=rd(atStop)./ld(atStop); sd(atStop)=0;
 beta=ppval(tab.beta,k); bd=ppval(tab.betad,k);
 q=theta+g.*s; h=q-beta;
 qd=td+gd.*kd.*s+g.*sd; hd=qd-bd.*kd;
@@ -68,7 +88,7 @@ r=struct('a',a,'body',b,'s',s,'sd',sd,'l',l,'ld',ld.*kd,'q',q,'qd',qd,...
  'objective',cfg.w2*cot-cfg.w1*b.speed,'constraints',c,'maxViolation',max([0;c]),...
  'constraintChannels',channels,'constraintEnvelope',envelope,...
  'durationConstraints',durationConstraints,...
- 'equilibriumResidual',[e1,e2],'pointsLocal',points,...
+ 'equilibriumResidual',[e1,e2],'stopReaction',stopReaction,'pointsLocal',points,...
  'jacobian',J,'Fr',Fr,'tauR',Tr,'F',F,'springForce',springForce,...
  'springStiffness',springStiffness,'springEnergy',springEnergy,...
  'cumulativeAbsoluteWork',cumtrapz(b.t,abs(power)),...

@@ -32,9 +32,26 @@ for it=1:60
  if toc(watch)>cfg.evaluationSeconds, error('EFLM:Timeout','Evaluation exceeded time budget'); end
 end
 if ~converged, error('EFLM:Convergence','Exact equilibrium did not converge'); end
+% Enforce the unilateral stop at the preloaded reference length.
+atStop=s<0;
+if any(atStop)
+ s(atStop)=0;
+ k(atStop)=ppval(tab.inverse,rad(atStop));
+ for j=1:4
+  dt=exact_polar_geometry(k(atStop),s(atStop),p);
+  k(atStop)=k(atStop)-(dt.R-rad(atStop))./dt.Rk;
+ end
+ d=exact_polar_geometry(k,s,p); [Fs,K]=spring_response(s,p);
+ e1=d.R-rad; e2=Fs+Fr.*d.Rs+Tr.*d.Bs;
+end
+stopReaction=zeros(n,1);
+stopReaction(atStop)=e2(atStop);
+if any(stopReaction< -1e-8), error('EFLM:Stop','Invalid preload stop reaction'); end
+e2(atStop)=e2(atStop)-stopReaction(atStop);
 [aa,bb,cc,dd,detj]=systemJacobian(d,k,s,K);
 rhs2=-Frd.*d.Rs-Trd.*d.Bs;
 kd=(dd.*rd-bb.*rhs2)./detj; sd=(-cc.*rd+aa.*rhs2)./detj;
+kd(atStop)=rd(atStop)./d.Rk(atStop); sd(atStop)=0;
 h=theta-d.beta; hd=td-d.Bk.*kd-d.Bs.*sd;
 tau=[Tr,d.Rk.*Fr+d.Bk.*Tr]; dq=[hd,kd];
 qad=d.qak.*kd+d.qas.*sd;
@@ -60,6 +77,7 @@ r=struct('a',a,'body',b,'s',s,'sd',sd,'l',l,'ld',ref.Rk.*kd,'q',q,'qd',qd,...
  'objective',cfg.w2*cot-cfg.w1*b.speed,'constraints',c,'maxViolation',max([0;c]),...
  'constraintChannels',channels,'constraintEnvelope',[max(channels,[],1)';-b.distance;durationConstraints],...
  'durationConstraints',durationConstraints,'equilibriumResidual',[e1,e2],...
+ 'stopReaction',stopReaction,...
  'pointsLocal',points,'jacobian',J,'Fr',Fr,'tauR',Tr,'F',F,...
  'springForce',springForce,'springStiffness',springStiffness,'springEnergy',springEnergy,...
  'cumulativeAbsoluteWork',cumtrapz(b.t,abs(power)),'exactToeResidual',toe-Y,...

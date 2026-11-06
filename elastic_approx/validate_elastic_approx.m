@@ -2,7 +2,7 @@ function report = validate_elastic_approx()
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'elastic_approx')));
 p=robot_parameters(); cfg=optimization_settings(); tab=build_geometry_cache(p);
-% Check smooth force slope, exact force/energy consistency on positive domain.
+% Check preloaded linear force and force/energy consistency on positive domain.
 s=[1e-5 3e-5 8e-5 .003]'; step=1e-9;
 [~,K]=spring_response(s,p); [fp,~,up]=spring_response(s+step,p); [fm,~,um]=spring_response(s-step,p);
 F=spring_response(s,p);
@@ -33,7 +33,7 @@ df=[gradient(fine.angles(:,1),fine.body.t),gradient(fine.angles(:,2),fine.body.t
 report.fineRateError=max(abs(df-fine.angularVelocity(:,1:2)),[],'all');
 % Extremely clustered endpoint differences suffer cancellation; test rates
 % independently in the resolved interior, and report endpoint errors separately.
-interior=fine.s>2*p.rise & fine.body.t>.01*fine.body.Ts & fine.body.t<.99*fine.body.Ts;
+interior=fine.s>1e-4 & fine.body.t>.01*fine.body.Ts & fine.body.t<.99*fine.body.Ts;
 report.interiorRateError=max(abs(df(interior,:)-fine.angularVelocity(interior,1:2)),[],'all');
 assert(report.interiorRateError<1e-3,'Implicit joint rates disagree with time differences');
 assert(r.maxViolation<=cfg.constraintTolerance,'Default initial point must be feasible');

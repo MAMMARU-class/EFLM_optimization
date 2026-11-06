@@ -67,7 +67,7 @@
 
 を評価する。足首にはアクチュエータを置かないので `τ_required,a=0`。これと足先固定の2式を合わせた3式を、`h,k,a` の3未知数で解く。解いた後、`τ_h,τ_k` をモータの必要トルクとする。
 
-**この追加トルクは、`P(s)` を保存的なばねポテンシャルに加えて `−P(s)∇s` とする式とは一致しない。** そのため、approx/exactと同じ `spring_response` が出力する `springForce`,`springEnergy` は、このEFLMの与圧を含む運動方程式のポテンシャル・力としては解釈しない。実際に式へ入る保存的な項は `k_s s` と `k_s s²/2`、与圧は上の追加トルクである。コードは `linearSpringEnergy`、`additionalSpringTorque`、`additionalSpringPower` を別々に保存する。これは既存の `urls` の式を優先するためのモデル差であり、最適化結果の差を読む際には幾何の表現差と区別する必要がある。
+**この追加トルクは、`P(s)` を保存的なばねポテンシャルに加えて `−P(s)∇s` とする式とは一致しない。** EFLMの診断出力には `spring_response(s,p,'smoothDiagnostic')` を使うが、その `springForce`,`springEnergy` は与圧を含む運動方程式のポテンシャル・力としては解釈しない。実際に式へ入る保存的な項は `k_s s` と `k_s s²/2`、与圧は上の追加トルクである。コードは `linearSpringEnergy`、`additionalSpringTorque`、`additionalSpringPower` を別々に保存する。これは既存の `urls` の式を優先するためのモデル差であり、最適化結果の差を読む際には幾何の表現差と区別する必要がある。
 
 ## 速度・仕事・残差
 

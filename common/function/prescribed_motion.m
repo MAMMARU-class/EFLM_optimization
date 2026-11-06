@@ -3,7 +3,7 @@ function b = prescribed_motion(a,p,n)
 A=a(1); alpha=a(2); v=a(3); D=a(4);
 r0=a(5);
 Ts=2*r0*sin(alpha)/v; Tf=Ts*(1/D-1); T=Ts+Tf;
-% Cluster time nodes near touchdown/liftoff to resolve preload activation.
+% Cluster time nodes near touchdown/liftoff to resolve contact constraints.
 t=Ts*(1-cos(linspace(0,pi,n)'))/2; w=pi/Ts; B=pi*p.m*p.g/(2*D);
 x0=-r0*sin(alpha); z0=r0*cos(alpha); vz0=-p.g*Tf/2;
 Fx=-A*sin(2*w*t); Fz=B*sin(w*t);

@@ -48,7 +48,7 @@ channels=[(tau-hi)/p.tauMax,(lo-tau)/p.tauMax,...
 durationConstraints=[(cfg.minimumStance-b.Ts)/cfg.minimumStance;...
  (cfg.minimumFlight-b.Tf)/cfg.minimumFlight];
 c=[channels(:);-b.distance;durationConstraints];
-[springForce,springStiffness,springEnergy]=spring_response(s,p);
+[springForce,springStiffness,springEnergy]=spring_response(s,p,'smoothDiagnostic');
 % Legacy plotting coordinates are reference (ds=0) leg length/orientation.
 k=angles(:,2); h=angles(:,1); epsc=1e-20;
 [ref,~]=eflm_geometry(h,k,zeros(n,1),p);

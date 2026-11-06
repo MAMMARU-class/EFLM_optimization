@@ -184,69 +184,42 @@ $$
 
 $k_s\ne0$ なら第二式から $ds=[F_r f(l)+\tau_r g(l)]/k_s$ と表せるが、右辺も $l$ に依存する。したがって、第一式と合わせて $l$ を決める。近似の有効範囲内で連続な解を選び、得た $l,ds$ を後続の式へ代入する。角度側の仮想座標も必要なら $q=\theta+g(l)\,ds$ で計算する。
 
-#### 4.2.1 本プロジェクトで使用する予圧立ち上がりモデル
+#### 4.2.1 本プロジェクトで使用する予圧基準の線形ばねモデル（approx / exact）
 
-式(16)はPDFに示された線形ばねの場合である。本プロジェクトでは、通常の弾性力 $k_s\,ds$ を全伸び領域で維持し、予圧成分だけを微小変位区間で滑らかに立ち上げる。ばね反力を
-
-$$
-F_s(ds)=k_s\,ds+F_{\mathrm{pre}}\rho(ds)
-$$
-
-と定義する。ここで
+$ds=0$ を既に予圧がかかったばね長とし、許容域 $ds\ge0$ で
 
 $$
-u=\frac{ds}{\delta_e},\qquad
-\rho(ds)=
-\begin{cases}
-0, & ds\le0,\\
-3u^2-2u^3, & 0<ds<\delta_e,\\
-1, & ds\ge\delta_e
-\end{cases}
+F_s(ds)=F_{\mathrm{pre}}+k_s\,ds
 $$
 
-である。$3u^2-2u^3$ は、区間の両端で値と傾きを連続に接続するsmoothstepである。したがって、$ds=0$ ではばね反力がゼロとなり、$ds\ge\delta_e$ では
-
-$$
-F_s(ds)=k_s\,ds+F_{\mathrm{pre}}
-$$
-
-となる。`sim_env_EFLM_old` に従い、
+とする。`sim_env_EFLM_old` に従い、
 
 $$
 k_s=17.43\times10^3\ \mathrm{N/m},\qquad
 F_{\mathrm{pre}}=3.4\ \mathrm{N}
 $$
 
-を用いる。予圧立ち上がり幅の初期値は $\delta_e=0.05\ \mathrm{mm}$ とし、最終的には数値安定性を確認して確定する。ばね伸びの許容範囲は
+を用いる。ばね伸びの許容範囲は
 
 $$
 0\le ds\le15\ \mathrm{mm}
 $$
 
-とする。$ds<0$ または $ds>15\ \mathrm{mm}$ は、ストッパトルクを発生させず、許容誤差を考慮したうえで実現不可能な候補として扱う。
+とする。$ds=0$ では機械的ストッパーが不足する外力を受け持つ。ストッパー反力を $\lambda\ge0$ とすれば、$ds\ge0$、$ds\lambda=0$ の片側拘束である。$ds>15\ \mathrm{mm}$ は実現不可能な候補として扱う。
 
 この構成則を使う場合、式(16)の第2式は
 
 $$
-F_s(ds)-F_r f(l)-\tau_r g(l)=0\tag{16a}
+F_s(ds)-F_r f(l)-\tau_r g(l)-\lambda=0\tag{16a}
 $$
 
 へ置き換える。$F_s$ と整合するばねポテンシャルは
 
 $$
-U_s(ds)=
-\begin{cases}
-0, & ds=0,\\[2mm]
-\dfrac12k_s\,ds^2+F_{\mathrm{pre}}
-\left(\dfrac{ds^3}{\delta_e^2}-\dfrac{ds^4}{2\delta_e^3}\right),
-&0<ds<\delta_e,\\[4mm]
-\dfrac12k_s\,ds^2+F_{\mathrm{pre}}\,ds
--\dfrac12F_{\mathrm{pre}}\delta_e,
-&ds\ge\delta_e
-\end{cases}
+U_s(ds)=F_{\mathrm{pre}}\,ds+\frac12k_s\,ds^2,\qquad ds\ge0
 $$
 
-であり、$\partial U_s/\partial ds=F_s(ds)$ を満たす。このため、ばね構成則を置き換えても仮想仕事およびラグランジュ方程式との整合性は維持される。
+であり、$\partial U_s/\partial ds=F_s(ds)$ を満たす。ストッパーは動かないので仕事をしない。5一般座標のEFLMは独自の与圧トルク則とsmoothstepを継続して使う。
 
 物理的な定義域は $ds\ge0$ である。非線形ソルバの中間反復では、$ds<0$ に対して $F_s=k_sds$、$U_s=\tfrac12k_sds^2$ と数値的に延長するが、負の伸びを物理的に許容する意味ではない。最終解は伸び下限制約で判定する。この延長では $ds=0$ の両側で剛性が $k_s$ となる。
 
@@ -318,13 +291,13 @@ k_s s+F_r R_s(l,q,s)+\tau_r\Theta_s(l,q,s)=0.
 \end{cases}\tag{19}
 $$
 
-本プロジェクトの予圧立ち上がりモデルでは、第3式を
+approx / exact の予圧基準モデルでは、第3式を
 
 $$
-F_s(s)+F_r R_s(l,q,s)+\tau_r\Theta_s(l,q,s)=0\tag{19a}
+F_s(s)+F_r R_s(l,q,s)+\tau_r\Theta_s(l,q,s)-\lambda=0\tag{19a}
 $$
 
-へ置き換える。ここで $F_s$ は4.2.1節と同じ構成則であり、$k_s s$ は伸びの全段階で含まれる。
+へ置き換える。ここで $F_s$ は4.2.1節と同じ構成則である。$s>0$ では $\lambda=0$、$s=0$ ではストッパー反力が現れる。
 
 第3式の符号は、$s$ を伸び正、復元力を $-k_s s$ とした結果である。厳密写像の $s$ 方向の仮想仕事から
 

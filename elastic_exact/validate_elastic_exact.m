@@ -18,7 +18,7 @@ assert(torqueError<1e-9 && balanceError<1e-8 && powerError<1e-8);
 assert(toeError<1e-10 && velocityError<1e-8);
 assert(max(abs(r.body.periodic))<1e-10);
 % Time finite differences independently check the implicit velocity solve.
-mask=s>2*p.rise & r.body.t>.01*r.body.Ts & r.body.t<.99*r.body.Ts;
+mask=s>1e-4 & r.body.t>.01*r.body.Ts & r.body.t<.99*r.body.Ts;
 numeric=[gradient(h,r.body.t),gradient(k,r.body.t),gradient(r.angles(:,3),r.body.t)];
 rateError=max(abs(numeric(mask,:)-r.angularVelocity(mask,:)),[],'all');
 assert(rateError<1e-3,'Exact implicit rates disagree with time differences');
