@@ -1,3 +1,5 @@
+> この文書は旧3モデル比較の記録です。現在のモデルは [stage1_point_mass](../../stage1_point_mass/README.md) です。旧実装は過去ログ内の source/ またはGit履歴を参照してください。
+
 # 3モデルにおける与圧の扱い
 
 この文書は、現行実装の `elastic_approx`、`elastic_exact`、`EFLM` で与圧がどの式に入るかを比較する。いずれも `F_pre = 3.4 N`、`k_s = 17430 N/m` を使う。立ち上がり幅 `δ_e = 0.05 mm` は `EFLM` のみに残る。値は [`robot_parameters.m`](../../common/parameters/robot_parameters.m) にある。

@@ -1,3 +1,5 @@
+> この文書は旧3モデル比較の記録です。現在のモデルは [stage1_point_mass](../../stage1_point_mass/README.md) です。旧実装は過去ログ内の source/ またはGit履歴を参照してください。
+
 # `EFLM`：5一般座標モデル
 
 ## 一般座標と運動方程式

@@ -2,7 +2,19 @@ function b = prescribed_motion(a,p,n)
 % Exact integration of m*xdd=Fx, m*zdd=Fz-m*g; toe fixed at world origin.
 A=a(1); alpha=a(2); v=a(3); D=a(4);
 r0=a(5);
-Ts=2*r0*sin(alpha)/v; Tf=Ts*(1/D-1); T=Ts+Tf;
+% Match stance displacement to 2*r0*sin(alpha), including horizontal GRF:
+% A*Ts^2 - Bx*Ts + Cx = 0. Choose the shorter, forward-moving root.
+Bx=2*pi*p.m*v; Cx=4*pi*p.m*r0*sin(alpha);
+discriminant=Bx^2-4*A*Cx;
+if ~isfinite(discriminant) || discriminant<0
+ error('EFLM:StanceTime','No real stance time for the prescribed horizontal force and displacement');
+end
+% Rationalized root avoids cancellation and also covers A=0 (Ts=Cx/Bx).
+Ts=2*Cx/(Bx+sqrt(discriminant));
+if ~isfinite(Ts) || Ts<=0
+ error('EFLM:StanceTime','Stance time must be finite and positive');
+end
+Tf=Ts*(1/D-1); T=Ts+Tf;
 % Cluster time nodes near touchdown/liftoff to resolve contact constraints.
 t=Ts*(1-cos(linspace(0,pi,n)'))/2; w=pi/Ts; B=pi*p.m*p.g/(2*D);
 x0=-r0*sin(alpha); z0=r0*cos(alpha); vz0=-p.g*Tf/2;

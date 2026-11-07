@@ -10,7 +10,7 @@ if fid < 0
 end
 cleanup = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-model='elastic_approx';
+model='stage1_point_mass';
 if isfield(cfg,'model'), model=cfg.model; end
 fprintf(fid, 'EFLM %s optimization report\n',model);
 fprintf(fid, '========================================\n\n');

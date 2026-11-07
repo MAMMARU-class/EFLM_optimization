@@ -1,17 +1,22 @@
-# 最適化で使う3モデルの計算方法
+# 運動生成モデル
 
-このフォルダは、現在実装されている `elastic_approx`、`elastic_exact`、`EFLM` の**コードが実際に行う計算**を説明する。式の元資料は [`equation_of_motion.md`](../equation_of_motion.md)、個々の実装は各文書のリンクを参照する。
+現在の実装は **stage1_point_mass（単質点モデル）** です。旧 elastic_exact の計算方法を引き継いでいます。実行方法とモデルの概要は [stage1_point_mass/README.md](../../stage1_point_mass/README.md) を参照してください。
 
-| 文書 | 幾何・一般化座標 | 与圧の扱い | 反復で解く未知数 |
-|---|---|---|---|
-| [`01_elastic_approx.md`](01_elastic_approx.md) | `ds=0` 周りの足先幾何を一次近似。股・膝角を使用 | 保存的な共通ばね則 | 膝角 `k`、ばね伸び `s` |
-| [`02_elastic_exact.md`](02_elastic_exact.md) | 伸びを含む閉リンクの厳密幾何。股・膝角を使用 | 保存的な共通ばね則 | 膝角 `k`、ばね伸び `s` |
-| [`03_EFLM_five_coordinates.md`](03_EFLM_five_coordinates.md) | `[x,z,h,k,a]` の5一般座標。足首角 `a` も独立 | 線形ばねポテンシャル＋urls由来の追加トルク | 股角 `h`、膝角 `k`、足首角 `a` |
+| 項目 | 現在の名称 |
+|---|---|
+| モデルフォルダ | `stage1_point_mass/` |
+| 実行入口 | `run_stage1_optimization.m` |
+| シミュレーション | `sim_cycle_stage1_point_mass.m` |
+| 新規ログ | `_logs/stage1_point_mass/<日時>/` |
 
-3モデルとも脚質量と脚の慣性を無視し、飛行中は胴体の弾道運動だけを計算する。時間発展する胴体の運動は運動方程式から求め、脚内部の角度・伸びはその時刻の接地幾何と力の釣り合いから決まる。`ṡ` や角速度は、解いた代数方程式を時間微分して計算する。脚に独立した慣性運動を持たせる多体系モデルではない。
+今後は単質点の最適化結果を初期解として、多体モデルで再最適化する予定です。現時点で第2段階は未実装です。
 
-3モデルの質量、リンク長、関節角制限、モータ特性、床反力の入力形式、探索変数、目的関数、最適化の段階は共通である。共通計算と高速化の仕組みは [`00_common_pipeline.md`](00_common_pipeline.md) にまとめた。実行方法はルートの `run_elastic_optimization.m`、実行時の正確な条件は各 `_logs/<モデル>/<日時>/settings.mat` と `source/` を確認する。コードや設定を後から変更しても、過去の結果の条件は変わらない。
+以下は旧3モデル比較の記録です。approx と5一般座標EFLMの実装は本ブランチから削除しました。過去の実行条件・コードは既存ログの `settings.mat` と `source/` に保存されています。
 
-与圧の力・トルク・エネルギーへの入り方の違いは [`04_preload_handling.md`](04_preload_handling.md) に比較した。
-
-`rigid` は現時点の3モデルに含まれない。ここでの「厳密」は**幾何の一次近似を使わない**という意味であり、脚質量、足先衝突、遊脚の多体運動まで含む意味ではない。
+| 過去の文書 | 内容 |
+|---|---|
+| [00_common_pipeline.md](00_common_pipeline.md) | 共通最適化・解析積分・高速化 |
+| [01_elastic_approx.md](01_elastic_approx.md) | 一次近似モデル |
+| [02_elastic_exact.md](02_elastic_exact.md) | 単質点モデルの元となる厳密幾何 |
+| [03_EFLM_five_coordinates.md](03_EFLM_five_coordinates.md) | 旧5一般座標モデル |
+| [preload_handling.md](preload_handling.md) | 旧3モデルの与圧則の比較 |

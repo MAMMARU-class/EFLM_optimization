@@ -12,7 +12,6 @@ p.LD=.023;
 
 p.ks=17430; 
 p.preload=3.4; 
-p.rise=5e-5; % Retained for the five-coordinate EFLM preload torque only.
 p.smax=.015; 
 p.damping=0;
 

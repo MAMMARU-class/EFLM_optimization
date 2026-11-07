@@ -1,3 +1,5 @@
+> この文書は旧3モデル比較の記録です。現在のモデルは [stage1_point_mass](../../stage1_point_mass/README.md) です。旧実装は過去ログ内の source/ またはGit履歴を参照してください。
+
 # `elastic_exact`：閉リンクの厳密幾何モデル
 
 ## モデルの範囲

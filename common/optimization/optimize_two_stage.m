@@ -2,9 +2,7 @@ function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
 prepare_optimization_pool(cfg);
-simulate=@sim_cycle_elastic_approx;
-if isfield(cfg,'model') && strcmp(cfg.model,'elastic_exact'), simulate=@sim_cycle_elastic_exact; end
-if isfield(cfg,'model') && strcmp(cfg.model,'EFLM'), simulate=@sim_cycle_EFLM5; end
+simulate=@sim_cycle_stage1_point_mass;
 messages=[];
 if cfg.useParallel, messages=parallel.pool.PollableDataQueue; end
 history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
@@ -27,7 +25,9 @@ if count>0
  angles=deg2rad(1+8*rand(count,1));
  ts=cfg.minimumStance+.02*rand(count,1); tf=cfg.minimumFlight+.02*rand(count,1);
  lengths=lo(5)+(hi(5)-lo(5))*rand(count,1);
- seeds=[rand(count,1),angles,2*lengths.*sin(angles)./ts,ts./(ts+tf),lengths];
+ amplitudes=min(hi(1),max(lo(1),rand(count,1)));
+ velocities=2*lengths.*sin(angles)./ts+amplitudes.*ts/(2*pi*p.m);
+ seeds=[amplitudes,angles,velocities,ts./(ts+tf),lengths];
  starts(2:count+1,:)=min(1,max(0,(seeds-lo)./width));
 end
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...

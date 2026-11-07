@@ -1,4 +1,4 @@
-function r = sim_cycle_elastic_exact(a,p,tab,cfg,n)
+function r = sim_cycle_stage1_point_mass(a,p,tab,cfg,n)
 % Massless exact EFLM, docs (19a). All stance nodes solved together.
 watch=tic; b=prescribed_motion(a,p,n); Y=[-b.x,-b.z]; V=[-b.vx,-b.vz];
 G=-[b.Fx,b.Fz]; Gd=-[b.dFx,b.dFz];

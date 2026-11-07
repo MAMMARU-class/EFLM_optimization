@@ -1,5 +1,6 @@
 function [outputFolder, sourceFolders] = compare_latest_stance_plots()
 % Recreate stance plots for the latest completed approx, exact, and EFLM runs.
+% Historical-log utility: reads saved results only, not the deleted models.
 % Every corresponding panel uses the same y limits across the three models.
 
 root = fileparts(fileparts(mfilename('fullpath')));

@@ -30,7 +30,7 @@ for tt=linspace(0,cfg.cycles*b.T,max(2,ceil(duration*cfg.fps)))
  if t<=b.Ts
   x=interp1(b.t,b.x,t); z=interp1(b.t,b.z,t);
   angles=interp1(b.t,r.angles(:,1:2),t); s=interp1(b.t,r.s,t);
-  model='elastic_approx'; if isfield(cfg,'model'), model=cfg.model; end
+  model='stage1_point_mass'; if isfield(cfg,'model'), model=cfg.model; end
   label=['Stance: optimized ' model];
   if isDiagnostic, label='Stance: diagnostic trajectory (not optimized)'; end
   if ~isDiagnostic && ~result.valid, label='Stance: infeasible optimization candidate'; end
