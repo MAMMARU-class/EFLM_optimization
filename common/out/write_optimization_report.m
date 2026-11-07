@@ -44,7 +44,12 @@ fprintf(fid, 'Broad starts : %d\n', cfg.starts);
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
 fprintf(fid, 'Narrow radius: %.6g of each scaled broad interval\n', cfg.localRadius);
 fprintf(fid, 'Local solver : %s/fmincon\n', cfg.algorithm);
-fprintf(fid, 'Objective    : maximize w1*meanSpeed - w2*CoT\n');
+if isfield(cfg,'targetSpeed') && isfield(cfg,'targetCoT')
+ fprintf(fid, 'Objective    : minimize w1*((meanSpeed-targetSpeed)/targetSpeed)^2 + w2*((CoT-targetCoT)/targetCoT)^2\n');
+ fprintf(fid, 'Targets      : speed=%.12g m/s, CoT=%.12g\n',cfg.targetSpeed,cfg.targetCoT);
+else
+ fprintf(fid, 'Objective    : maximize w1*meanSpeed - w2*CoT\n');
+end
 fprintf(fid, 'Weights      : w1=%.12g, w2=%.12g\n', cfg.w1, cfg.w2);
 fprintf(fid, 'Random seed  : %d\n', cfg.seed);
 fprintf(fid, 'Stance nodes : %d (optimization), %d (final check)\n', cfg.nodes, cfg.finalNodes);

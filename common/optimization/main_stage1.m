@@ -44,6 +44,8 @@ validateattributes(cfg.initial,{'numeric'},{'row','numel',5,'real','finite'});
 validateattributes(cfg.lower(5),{'numeric'},{'positive'});
 validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
+validateattributes(cfg.targetSpeed,{'numeric'},{'scalar','real','finite','positive'});
+validateattributes(cfg.targetCoT,{'numeric'},{'scalar','real','finite','positive'});
 if cfg.w1==0 && cfg.w2==0
  error('EFLM:ObjectiveWeights','At least one objective weight must be positive.');
 end

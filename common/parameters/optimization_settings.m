@@ -13,6 +13,7 @@ cfg.localRadius=.15; cfg.nodes=121; cfg.finalNodes=1201;
 % required by Algorithm='sqp'. The legacy SQP implementation is available.
 cfg.algorithm='sqp-legacy';
 cfg.w1=10; cfg.w2=1;
+cfg.targetSpeed=4; cfg.targetCoT=.3;
 cfg.maxIterations=120; cfg.maxEvaluations=1400;
 cfg.constraintTolerance=1e-5; cfg.stepTolerance=1e-7;
 cfg.stageSeconds=12*60*60; cfg.evaluationSeconds=5;
