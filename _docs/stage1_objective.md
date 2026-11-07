@@ -1,6 +1,6 @@
 # stage1 の目標値に基づく目的関数
 
-`mean_velocity` と `initial_velocity` の両手法で、次の無次元の目的関数を最小化する。
+現在の `stage1_point_mass` では、次の無次元の目的関数を最小化する。旧 `mean_velocity` / `initial_velocity` は archive に保存されている。
 
 \[
 \min J_{\mathrm{cost}}
@@ -13,11 +13,10 @@
 プロジェクト直下の `run_stage1_optimization.m` の `overrides.targetSpeed`、`overrides.targetCoT`、`overrides.w1`、`overrides.w2` から調整できる。現在の実行プリセットの重みは `w1=2`、`w2=1`。引数に構造体を渡す場合は、未指定項目が `optimization_settings.m` の既定値になるため、重みも明示する。
 
 ```matlab
-options = struct('method','mean_velocity', ...
-    'targetSpeed',4,'targetCoT',0.3,'w1',2,'w2',1);
+options = struct('targetSpeed',4,'targetCoT',0.3,'w1',2,'w2',1);
 [result,folder] = run_stage1_optimization(options);
 ```
 
 目標値は正の有限値、重みは非負の有限値とし、少なくとも一方の重みを正にする。目標値は等式制約ではなく、機構・モータなどの制約の下で近づける評価基準である。計算失敗時は既存のペナルティを使用する。設定値は `settings.mat`、`result.mat` と `report.txt` に保存される。
 
-実装は `common/function/stage1_target_cost.m`。保存用に残した `stage1_point_mass/` の計算本体には変更を加えていない。
+実装は `common/function/stage1_target_cost.m`。立脚時間倍率の設定は [stage1_stance_multiplier.md](stage1_stance_multiplier.md) を参照。

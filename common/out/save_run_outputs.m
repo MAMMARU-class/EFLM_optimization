@@ -10,7 +10,8 @@ writetable(array2table(data,'VariableNames',names),fullfile(folder,'trajectory.c
 writetable(array2table([b.Ts+b.flightTime,b.flightX,b.flightZ,b.flightVx,b.flightVz],...
  'VariableNames',{'t','x','z','vx','vz'}),fullfile(folder,'flight.csv'));
 variableNames={'AmpH','thetaL','v','Duty'};
-if numel(result.bestVariables)==5, variableNames{5}='r0'; end % Old logs remain readable.
+if numel(result.bestVariables)>=5, variableNames{5}='r0'; end % Old logs remain readable.
+if numel(result.bestVariables)>=6, variableNames{6}='stanceScale'; end
 writetable(array2table([result.bestVariables,b.speed,r.cot,r.energy,b.distance,b.T,b.Ts,b.Tf,r.maxViolation,result.valid],...
  'VariableNames',[variableNames,{'speed','CoT','energy','distance','period','stanceTime','flightTime','maxViolation','valid'}]),...
  fullfile(folder,'summary.csv'));

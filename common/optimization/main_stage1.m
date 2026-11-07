@@ -25,23 +25,16 @@ for key=fieldnames(overrides)'
  end
  cfg.(key{1})=overrides.(key{1});
 end
-if ~(ischar(cfg.method) || (isstring(cfg.method) && isscalar(cfg.method)))
- error('EFLM:StanceMethod','Method must be mean_velocity or initial_velocity.');
-end
-method=char(cfg.method);
-if ~any(strcmp(method,{'mean_velocity','initial_velocity'}))
- error('EFLM:StanceMethod','Unknown stance-time method: %s',method);
-end
-model=['stage1_point_mass_' method];
+model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
-cfg.method=method;
-cfg.simulationFunction=['sim_cycle_stage1_point_mass_' method];
-cfg.cacheFunction=['build_exact_geometry_cache_' method];
-validateattributes(cfg.lower,{'numeric'},{'row','numel',5,'real','finite'});
-validateattributes(cfg.upper,{'numeric'},{'row','numel',5,'real','finite'});
-validateattributes(cfg.initial,{'numeric'},{'row','numel',5,'real','finite'});
-validateattributes(cfg.lower(5),{'numeric'},{'positive'});
+cfg.method='scaled_initial_velocity';
+cfg.simulationFunction='sim_cycle_stage1_point_mass';
+cfg.cacheFunction='build_exact_geometry_cache';
+validateattributes(cfg.lower,{'numeric'},{'row','numel',6,'real','finite'});
+validateattributes(cfg.upper,{'numeric'},{'row','numel',6,'real','finite'});
+validateattributes(cfg.initial,{'numeric'},{'row','numel',6,'real','finite'});
+validateattributes(cfg.lower(5:6),{'numeric'},{'positive'});
 validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.targetSpeed,{'numeric'},{'scalar','real','finite','positive'});

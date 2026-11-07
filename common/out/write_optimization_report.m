@@ -32,7 +32,9 @@ fprintf(fid, '2. Narrow MultiStart around the broad-stage solution\n');
 fprintf(fid, '3. Dense trajectory check and active-time constrained refinement\n');
 fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and this report\n\n');
 
-fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m])\n');
+fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m]');
+if numel(cfg.initial)>=6, fprintf(fid, ', stanceScale [-]'); end
+fprintf(fid, ')\n');
 fprintf(fid, '---------------------------------------------------------------\n');
 if isfield(cfg,'method')
     fprintf(fid, 'Stance-time method: %s\n',cfg.method);
@@ -105,6 +107,10 @@ fprintf(fid, '  Touchdown angle thetaL [rad]         : %.12g\n', a(2));
 fprintf(fid, '  Initial horizontal velocity v [m/s]  : %.12g\n', a(3));
 fprintf(fid, '  Duty factor [-]                      : %.12g\n', a(4));
 fprintf(fid, '  Initial leg length r0 [m]            : %.12g\n', a(5));
+if numel(a)>=6
+ fprintf(fid, '  Stance time multiplier [-]          : %.12g\n',a(6));
+ fprintf(fid, 'Base stance time [s] : %.12g\n',b.TsBase);
+end
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);
