@@ -34,6 +34,9 @@ fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and thi
 
 fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m])\n');
 fprintf(fid, '---------------------------------------------------------------\n');
+if isfield(cfg,'method')
+    fprintf(fid, 'Stance-time method: %s\n',cfg.method);
+end
 fprintf(fid, 'Lower bounds : %s\n', rowText(cfg.lower));
 fprintf(fid, 'Upper bounds : %s\n', rowText(cfg.upper));
 fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));

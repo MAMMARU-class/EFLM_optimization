@@ -2,7 +2,7 @@ function result = optimize_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister'); initialRng=rng;
 prepare_optimization_pool(cfg);
-simulate=@sim_cycle_stage1_point_mass;
+simulate=str2func(cfg.simulationFunction);
 messages=[];
 if cfg.useParallel, messages=parallel.pool.PollableDataQueue; end
 history=zeros(0,11); failures=cell(0,2); lastX=[]; lastR=[];
@@ -26,7 +26,10 @@ if count>0
  ts=cfg.minimumStance+.02*rand(count,1); tf=cfg.minimumFlight+.02*rand(count,1);
  lengths=lo(5)+(hi(5)-lo(5))*rand(count,1);
  amplitudes=min(hi(1),max(lo(1),rand(count,1)));
- velocities=2*lengths.*sin(angles)./ts+amplitudes.*ts/(2*pi*p.m);
+ velocities=2*lengths.*sin(angles)./ts;
+ if strcmp(cfg.method,'mean_velocity')
+  velocities=velocities+amplitudes.*ts/(2*pi*p.m);
+ end
  seeds=[amplitudes,angles,velocities,ts./(ts+tf),lengths];
  starts(2:count+1,:)=min(1,max(0,(seeds-lo)./width));
 end

@@ -1,7 +1,6 @@
 function [result,folder] = main_stage1(overrides)
 % Stage 1 point-mass optimization. Requires MATLAB R2026b.
 if nargin<1, overrides=struct; end
-model='stage1_point_mass';
 validateattributes(overrides,{'struct'},{'scalar'},mfilename,'overrides');
 assert(strcmp(version('-release'),'2026b'),'Use MATLAB R2026b');
 root=fileparts(fileparts(fileparts(mfilename('fullpath'))));
@@ -11,14 +10,14 @@ if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
  % R2026b path once, then restore this project's model paths.
  restoredefaultpath;
  rehash toolboxcache;
- addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'stage1_point_mass')));
+ addpath(genpath(fullfile(root,'common')));
 end
 if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
  error('EFLM:MissingToolbox',...
   ['Optimization Toolbox or Global Optimization Toolbox is unavailable in R2026b. ' ...
    'Restart MATLAB after installing the products.']);
 end
-addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'stage1_point_mass')));
+addpath(genpath(fullfile(root,'common')));
 p=robot_parameters(); cfg=optimization_settings();
 for key=fieldnames(overrides)'
  if ~isfield(cfg,key{1})
@@ -26,6 +25,19 @@ for key=fieldnames(overrides)'
  end
  cfg.(key{1})=overrides.(key{1});
 end
+if ~(ischar(cfg.method) || (isstring(cfg.method) && isscalar(cfg.method)))
+ error('EFLM:StanceMethod','Method must be mean_velocity or initial_velocity.');
+end
+method=char(cfg.method);
+if ~any(strcmp(method,{'mean_velocity','initial_velocity'}))
+ error('EFLM:StanceMethod','Unknown stance-time method: %s',method);
+end
+model=['stage1_point_mass_' method];
+modelFolder=fullfile(root,model);
+addpath(genpath(modelFolder));
+cfg.method=method;
+cfg.simulationFunction=['sim_cycle_stage1_point_mass_' method];
+cfg.cacheFunction=['build_exact_geometry_cache_' method];
 validateattributes(cfg.lower,{'numeric'},{'row','numel',5,'real','finite'});
 validateattributes(cfg.upper,{'numeric'},{'row','numel',5,'real','finite'});
 validateattributes(cfg.initial,{'numeric'},{'row','numel',5,'real','finite'});
@@ -53,13 +65,13 @@ execution.projectRoot=root; execution.callChain=fliplr({stack.name});
 if numel(stack)>1, execution.entryPoint=stack(2).name; else, execution.entryPoint=stack(1).name; end
 % Snapshot code as well as settings: dirty changes must be reproducible too.
 copyfile(fullfile(root,'common'),fullfile(folder,'source','common'));
-copyfile(fullfile(root,'stage1_point_mass'),fullfile(folder,'source','stage1_point_mass'));
+copyfile(modelFolder,fullfile(folder,'source',model));
 copyfile(fullfile(root,'run_stage1_optimization.m'),fullfile(folder,'source','run_stage1_optimization.m'));
 [~,gitInfo]=system('git rev-parse HEAD');
 execution.gitCommit=strtrim(gitInfo);
 save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
 try
- tab=build_exact_geometry_cache(p);
+ tab=feval(cfg.cacheFunction,p);
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
  result=optimize_two_stage(p,tab,cfg,folder);
  execution.status='completed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
