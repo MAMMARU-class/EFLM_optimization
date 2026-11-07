@@ -7,16 +7,18 @@ addpath(genpath(fullfile(root,'common')));
 if useDefaults
     % Each decision variable is [lower, upper, initial].
     overrides = struct;
-    overrides.AmpH = [5, 35, 10];                  % [N]
-    overrides.thetaL = deg2rad([30, 60, 50]);      % [rad]
+    overrides.AmpH = [1, 35, 10];                  % [N]
+    overrides.grfN = 15;                          % number of Hermite control points (>=4)
+    overrides.grfSlope = [-40, 40, 0];            % [lower, upper, fallback] [s^-1]; initial slopes are forward secants
+    overrides.thetaL = deg2rad([30, 65, 50]);      % [rad]
     overrides.v = [0.4, 4.0, 1.0];                % [m/s]
     overrides.Duty = [0.1, 0.60, 0.10];          % [-]
     overrides.r0 = [0.25, 0.33, 0.30];            % [m]
     overrides.stanceScale = [0.5, 2.0, 1.0];       % [-]
 
     % 
-    overrides.starts = 1000;
-    overrides.localStarts = 200;
+    overrides.starts = 1500 * 13*12;
+    overrides.localStarts = 500;
     overrides.useParallel = true;
     overrides.parallelWorkers = 16;
 

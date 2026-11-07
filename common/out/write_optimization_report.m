@@ -34,6 +34,7 @@ fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and thi
 
 fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m]');
 if numel(cfg.initial)>=6, fprintf(fid, ', stanceScale [-]'); end
+if isfield(cfg,'grfN'), fprintf(fid, ', Hermite ratios [-] and slopes [s^-1]'); end
 fprintf(fid, ')\n');
 fprintf(fid, '---------------------------------------------------------------\n');
 if isfield(cfg,'method')
@@ -42,6 +43,12 @@ end
 fprintf(fid, 'Lower bounds : %s\n', rowText(cfg.lower));
 fprintf(fid, 'Upper bounds : %s\n', rowText(cfg.upper));
 fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));
+if isfield(cfg,'grfN')
+ fprintf(fid, 'Variable order: %s\n',strjoin(cfg.variableNames,', '));
+ fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d, slopes [s^-1]\n',cfg.grfN);
+ fprintf(fid, 'Slope seeds   : bounded forward secants; b_j=0; last point uses backward secant\n');
+ fprintf(fid, 'Discrete search: %d (k,j) pairs share the broad starts\n',size(cfg.grfPairs,1));
+end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
 fprintf(fid, 'Narrow radius: %.6g of each scaled broad interval\n', cfg.localRadius);
@@ -76,9 +83,7 @@ fprintf(fid, '%-12s %10s %10s %12s %12s %12s\n', ...
 printStage(fid, 'Broad', result.stageStats.global);
 printStage(fid, 'Narrow', result.stageStats.local);
 printStage(fid, 'Refinement', result.stageStats.polish);
-fprintf(fid, '\nEvaluation history rows by stage: broad=%d, narrow=%d, refinement=%d\n', ...
-    sum(result.history(:,1)==1), sum(result.history(:,1)==2), sum(result.history(:,1)==3));
-fprintf(fid, 'Failed candidate evaluations: %d\n\n', size(result.failures,1));
+fprintf(fid, '\n');
 
 totalOptimizationTime = result.stageStats.global.elapsed ...
     + result.stageStats.local.elapsed + result.stageStats.polish.elapsed;
@@ -111,6 +116,15 @@ fprintf(fid, '  Initial leg length r0 [m]            : %.12g\n', a(5));
 if numel(a)>=6
  fprintf(fid, '  Stance time multiplier [-]          : %.12g\n',a(6));
 end
+if isfield(b,'horizontalGRF')
+ h=b.horizontalGRF;
+ fprintf(fid, 'Horizontal GRF control points\n');
+ fprintf(fid, '  n=%d, k=%d, j=%d\n',numel(h.knots),h.k,h.j);
+ fprintf(fid, '  Shape values   : %s\n',rowText(h.values));
+ fprintf(fid, '  Slopes [s^-1]  : %s\n',rowText(h.slopes));
+ fprintf(fid, '  Impulse [N s]  : %.12g\n',a(1)*h.impulse);
+ fprintf(fid, '  Integral(f)/Ts : %.12g\n',h.normalizedImpulse);
+end
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);
@@ -125,8 +139,11 @@ fprintf(fid, 'Periodicity residual : %s\n\n', rowText(b.periodic));
 
 fprintf(fid, 'Artifacts\n');
 fprintf(fid, '---------\n');
-fprintf(fid, 'result.mat, summary.csv, optimization_history.csv, trajectory.csv,\n');
+fprintf(fid, 'result.mat, summary.csv, trajectory.csv,\n');
 fprintf(fid, 'constraint_residuals.csv, plots/, animation/, source/, settings.mat\n');
+if isfield(b,'horizontalGRF')
+ fprintf(fid, 'horizontal_grf_control_points.csv, horizontal_grf_shape_constraints.csv, horizontal_grf_summary.csv\n');
+end
 end
 
 function printStage(fid, name, stats)

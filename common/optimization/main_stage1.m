@@ -20,15 +20,16 @@ end
 addpath(genpath(fullfile(root,'common')));
 p=robot_parameters(); cfg=optimization_settings();
 cfg=apply_stage1_overrides(cfg,overrides);
+cfg=configure_horizontal_grf(cfg);
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
 cfg.method='scaled_initial_velocity';
 cfg.simulationFunction='sim_cycle_stage1_point_mass';
 cfg.cacheFunction='build_exact_geometry_cache';
-validateattributes(cfg.lower,{'numeric'},{'row','numel',6,'real','finite'});
-validateattributes(cfg.upper,{'numeric'},{'row','numel',6,'real','finite'});
-validateattributes(cfg.initial,{'numeric'},{'row','numel',6,'real','finite'});
+validateattributes(cfg.lower,{'numeric'},{'row','real','finite'});
+validateattributes(cfg.upper,{'numeric'},{'row','numel',numel(cfg.lower),'real','finite'});
+validateattributes(cfg.initial,{'numeric'},{'row','numel',numel(cfg.lower),'real','finite'});
 validateattributes(cfg.lower(5:6),{'numeric'},{'positive'});
 validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
@@ -43,7 +44,7 @@ if any(cfg.initial<cfg.lower|cfg.initial>cfg.upper)
 end
 cfg.model=model;
 folder=fullfile(root,'_logs',model,char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
-mkdir(folder); diary(fullfile(folder,'run.log')); dc=onCleanup(@()diary('off'));
+mkdir(folder);
 prepare_optimization_pool(cfg);
 runTimer=tic;
 stack=dbstack;
@@ -63,14 +64,20 @@ save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
 try
  tab=feval(cfg.cacheFunction,p);
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
- result=optimize_two_stage(p,tab,cfg,folder);
+ result=optimize_two_stage(p,tab,cfg);
  execution.status='completed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
- execution.totalElapsed=toc(runTimer); result.execution=execution; result.gitCommit=execution.gitCommit;
- save(fullfile(folder,'result.mat'),'result','-v7.3');
+ execution.totalElapsed=toc(runTimer); result.gitCommit=execution.gitCommit;
+ saveSteps=3+double(cfg.video);
+ fprintf('[Saving 1/%d] Final result: result.mat\n',saveSteps);
+ save(fullfile(folder,'result.mat'),'result','-v7');
+ fprintf('[Saving 2/%d] Trajectory tables and plots\n',saveSteps);
  save_run_outputs(result,folder);
- if cfg.video, render_eflm_video(result,folder); end
+ if cfg.video
+  fprintf('[Saving 3/%d] Motion video and previews\n',saveSteps);
+  render_eflm_video(result,folder);
+ end
  execution.totalElapsed=toc(runTimer); execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
- result.execution=execution; save(fullfile(folder,'result.mat'),'result','-v7.3');
+ fprintf('[Saving %d/%d] Report: report.txt\n',saveSteps,saveSteps);
  write_optimization_report(result,folder,execution,cfg);
  disp(readtable(fullfile(folder,'summary.csv')));
  fprintf('Saved: %s\n',folder);
@@ -78,7 +85,6 @@ catch ME
  execution.status='failed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  execution.totalElapsed=toc(runTimer);
  write_optimization_report([],folder,execution,cfg,ME);
- save(fullfile(folder,'failure.mat'),'ME','p','cfg');
  rethrow(ME);
 end
 end

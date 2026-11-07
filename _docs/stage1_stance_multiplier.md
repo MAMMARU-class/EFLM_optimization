@@ -17,7 +17,7 @@ T_s=\gamma T_{s,0},\qquad \gamma=\mathrm{stanceScale}>0.
 
 目的関数は目標速度4 m/s、目標CoT 0.3に対する相対誤差の重み付き二乗和。目標値と重みは実行ファイルから変更できる。
 
-実行は `run_stage1_optimization()` または設定構造体を渡す。各最適化変数は `overrides.AmpH`、`thetaL`、`v`、`Duty`、`r0`、`stanceScale` に `[lower, upper, initial]` を設定する。必要な変数だけ指定でき、省略した変数には `optimization_settings.m` の既定値を使う。従来の `lower`、`upper`、`initial` 配列は廃止した。モデル選択の文字列引数も廃止し、`stage1_point_mass` 専用とする。出力は `_logs/stage1_point_mass/<日時>/`。`summary.csv`、`optimization_history.csv`、`result.mat`、`report.txt` に倍率を保存し、`result.final.body.TsBase` に基準時間を保存する。
+実行は `run_stage1_optimization()` または設定構造体を渡す。各最適化変数は `overrides.AmpH`、`thetaL`、`v`、`Duty`、`r0`、`stanceScale` に `[lower, upper, initial]` を設定する。必要な変数だけ指定でき、省略した変数には `optimization_settings.m` の既定値を使う。従来の `lower`、`upper`、`initial` 配列は廃止した。モデル選択の文字列引数も廃止し、`stage1_point_mass` 専用とする。出力は `_logs/stage1_point_mass/<日時>/`。`summary.csv`、`result.mat`、`report.txt` に倍率を保存し、`result.final.body.TsBase` に基準時間を保存する。
 
 運動生成は `stage1_point_mass/prescribed_motion_stage1.m`。`archive/` 内の initial_velocity / mean_velocity は変更しない。過去の実行は各ログに保存されたソースと設定から再現する。
 

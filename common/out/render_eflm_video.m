@@ -4,24 +4,38 @@ r=result.final; p=result.parameters; cfg=result.settings; b=r.body;
 dest=fullfile(folder,'animation'); if ~isfolder(dest), mkdir(dest); end
 vid=VideoWriter(fullfile(dest,'motion.mp4'),'MPEG-4'); vid.FrameRate=cfg.fps;
 open(vid); cv=onCleanup(@()close(vid));
-fig=figure('Visible','off','Position',[100 100 960 640]); cf=onCleanup(@()close(fig));
+% Keep a fixed world-space view across all cycles, with the frame aspect
+% matched to the trajectory bounds to avoid vertical letterboxing.
+xmin=min([b.x;b.flightX]);
+xmax=max([b.x;b.flightX])+(cfg.cycles-1)*b.distance;
+ymin=min(0,min([b.z;b.flightZ]));
+ymax=max([b.z;b.flightZ]);
+ymin=ymin-.025; ymax=ymax+.035;
+ylimits=[ymin,ymax];
+xlimits=[xmin-.025,xmax+.025];
+frameWidth=1280;
+plotHeight=frameWidth*diff(ylimits)/diff(xlimits);
+frameHeight=2*ceil((plotHeight+70)/2); % room for labels/title; MPEG-4 requires even pixels
+fig=figure('Visible','off','Color','white','Units','pixels',...
+ 'Position',[100 100 frameWidth frameHeight]); cf=onCleanup(@()close(fig));
 minimumSeconds=4;
 if isfield(cfg,'minimumVideoSeconds'), minimumSeconds=cfg.minimumVideoSeconds; end
 duration=max(minimumSeconds,cfg.cycles*b.T/cfg.playbackSpeed);
 playbackSpeed=cfg.cycles*b.T/duration;
 renderInfo=struct('direction','XDir reverse: positive simulation x displayed left',...
  'flight','body only; leg hidden','rigidLinkColor','black','springColor','blue',...
- 'playbackSpeed',playbackSpeed,'fps',cfg.fps,'createdAt',char(datetime('now')));
+ 'playbackSpeed',playbackSpeed,'fps',cfg.fps,'createdAt',char(datetime('now')),...
+ 'camera','fixed','xlimits',xlimits,'ylimits',ylimits,...
+ 'frameSize',[frameWidth frameHeight]);
 save(fullfile(dest,'render_settings.mat'),'renderInfo');
-ax=axes(fig); hold(ax,'on');
-xlimits=[b.x(1)-.18,b.x(1)+cfg.cycles*b.distance+.18];
+ax=axes(fig,'Units','normalized','OuterPosition',[0 0 1 1]); hold(ax,'on');
 plot(ax,xlimits,[0 0],'k-');
 link=plot(ax,NaN,NaN,'k-','LineWidth',3.9);
 spring=plot(ax,NaN,NaN,'b-','LineWidth',3.2);
 active=plot(ax,NaN,NaN,'ro','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',9);
 passive=plot(ax,NaN,NaN,'ko','MarkerFaceColor','w','MarkerSize',8);
 body=plot(ax,NaN,NaN,'bo','MarkerFaceColor','b','MarkerSize',10);
-axis(ax,'equal'); xlim(ax,xlimits); ylim(ax,[-.05,.48]); grid(ax,'on');
+axis(ax,'equal'); xlim(ax,xlimits); ylim(ax,ylimits); grid(ax,'on');
 set(ax,'XDir','reverse'); xlabel(ax,'x [m] (forward displayed left)'); ylabel(ax,'z [m]');
 isDiagnostic=isfield(result,'status') && contains(result.status,'diagnostic');
 flightPreviewSaved=false;

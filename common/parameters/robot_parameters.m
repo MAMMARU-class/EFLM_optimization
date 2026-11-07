@@ -14,6 +14,7 @@ p.ks=17430;
 p.preload=3.4; 
 p.smax=.015; 
 p.damping=0;
+p.frictionCoefficient=0.4; % Static foot-ground friction coefficient.
 
 % p.jointLower=deg2rad([55 16]);
 % p.jointUpper=deg2rad([155 144]);

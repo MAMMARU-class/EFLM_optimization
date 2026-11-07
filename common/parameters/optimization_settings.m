@@ -15,8 +15,10 @@ cfg.w1=10; cfg.w2=1;
 cfg.targetSpeed=4; cfg.targetCoT=.3;
 cfg.maxIterations=120; cfg.maxEvaluations=1400;
 cfg.constraintTolerance=1e-5; cfg.stepTolerance=1e-7;
-cfg.stageSeconds=12*60*60; cfg.evaluationSeconds=5;
+cfg.evaluationSeconds=5;
 cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
 cfg.minimumStance=.2; cfg.minimumFlight=.2;
+cfg.grfN=7; % Number of uniformly spaced horizontal-force control points.
+cfg.grfSlope=[-45 45 0]; % [lower, upper, fallback]; starts use bounded forward secants [s^-1].
 end
