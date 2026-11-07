@@ -19,12 +19,7 @@ if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
 end
 addpath(genpath(fullfile(root,'common')));
 p=robot_parameters(); cfg=optimization_settings();
-for key=fieldnames(overrides)'
- if ~isfield(cfg,key{1})
-  error('EFLM:UnknownSetting','Unknown optimization setting: %s',key{1});
- end
- cfg.(key{1})=overrides.(key{1});
-end
+cfg=apply_stage1_overrides(cfg,overrides);
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));

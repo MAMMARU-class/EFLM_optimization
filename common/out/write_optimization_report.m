@@ -101,6 +101,7 @@ a = result.bestVariables;
 fprintf(fid, 'Final result\n');
 fprintf(fid, '------------\n');
 fprintf(fid, 'Result status        : %s\n', result.status);
+fprintf(fid, 'Final cost J_cost    : %.12g\n', r.objective);
 fprintf(fid, 'Optimized initial parameters\n');
 fprintf(fid, '  Horizontal force amplitude AmpH [N]  : %.12g\n', a(1));
 fprintf(fid, '  Touchdown angle thetaL [rad]         : %.12g\n', a(2));
@@ -109,7 +110,6 @@ fprintf(fid, '  Duty factor [-]                      : %.12g\n', a(4));
 fprintf(fid, '  Initial leg length r0 [m]            : %.12g\n', a(5));
 if numel(a)>=6
  fprintf(fid, '  Stance time multiplier [-]          : %.12g\n',a(6));
- fprintf(fid, 'Base stance time [s] : %.12g\n',b.TsBase);
 end
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
