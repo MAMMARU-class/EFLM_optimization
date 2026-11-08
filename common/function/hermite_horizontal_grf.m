@@ -4,7 +4,7 @@ n=cfg.grfN; k=cfg.grfK; j=cfg.grfJ; dt=Ts/(n-1);
 value=zeros(1,n); ratioNodes=setdiff(2:n-1,[k j]); slopeNodes=[1 n];
 value(ratioNodes)=a(7:6+n-4); value(j)=1;
 value(1:k-1)=-value(1:k-1);
-slope=zeros(1,n); slope(1)=a(end-1); slope(n)=a(end);
+slope=zeros(1,n); slope([1 n])=a(end);
 slope(2:n-1)=(value(3:n)-value(1:n-2))/(2*dt);
 slope(j)=0;
 y0=value(1:end-1); y1=value(2:end);

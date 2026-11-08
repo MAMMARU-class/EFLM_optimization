@@ -2,21 +2,19 @@ function cfg = configure_horizontal_grf(cfg)
 % n is fixed for one run; k and j are categorical choices in the broad stage.
 n=cfg.grfN;
 validateattributes(n,{'numeric'},{'scalar','integer','>=',5});
-endpointNames={'grfSlopeStart','grfSlopeEnd'};
-for i=1:numel(endpointNames)
- name=endpointNames{i}; bounds=cfg.(name);
- validateattributes(bounds,{'numeric'},{'real','finite','size',[1 3]},mfilename,name);
- if bounds(1)>=bounds(2) || bounds(2)>0 || bounds(3)<bounds(1) || bounds(3)>bounds(2)
-  error('EFLM:GRFSlope','%s must be [lower, upper, initial] with lower < upper <= 0.',name);
- end
+endpointBounds=cfg.grfSlopeEndpoint;
+validateattributes(endpointBounds,{'numeric'},{'real','finite','size',[1 3]},mfilename,'grfSlopeEndpoint');
+if endpointBounds(1)>=endpointBounds(2) || endpointBounds(2)>0 || ...
+   endpointBounds(3)<endpointBounds(1) || endpointBounds(3)>endpointBounds(2)
+ error('EFLM:GRFSlope','grfSlopeEndpoint must be [lower, upper, initial] with lower < upper <= 0.');
 end
 if cfg.lower(1)<0, error('EFLM:GRFAmplitude','AmpH must be nonnegative.'); end
 cfg.variableNames={'AmpH','thetaL','v','Duty','r0','stanceScale'};
 for i=1:n-4, cfg.variableNames{end+1}=sprintf('grfRatio%d',i); end
-cfg.variableNames=[cfg.variableNames,endpointNames];
-cfg.lower=[cfg.lower(1:6),repmat(1e-4,1,n-4),cfg.grfSlopeStart(1),cfg.grfSlopeEnd(1)];
-cfg.upper=[cfg.upper(1:6),repmat(1-1e-4,1,n-4),cfg.grfSlopeStart(2),cfg.grfSlopeEnd(2)];
-cfg.initial=[cfg.initial(1:6),repmat(.5,1,n-4),cfg.grfSlopeStart(3),cfg.grfSlopeEnd(3)];
+cfg.variableNames=[cfg.variableNames,{'grfSlopeEndpoint'}];
+cfg.lower=[cfg.lower(1:6),repmat(1e-4,1,n-4),endpointBounds(1)];
+cfg.upper=[cfg.upper(1:6),repmat(1-1e-4,1,n-4),endpointBounds(2)];
+cfg.initial=[cfg.initial(1:6),repmat(.5,1,n-4),endpointBounds(3)];
 cfg.grfPairs=[];
 for k=3:n-2
  for j=setdiff(2:n-1,k)

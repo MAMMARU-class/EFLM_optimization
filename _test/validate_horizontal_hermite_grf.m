@@ -17,11 +17,11 @@ end
 expected=(h.values(3:end)'-h.values(1:end-2)')/(2*dt);
 expected(cfg.grfJ-1)=0;
 assert(max(abs(h.slopes(2:end-1)'-expected))<1e-12);
-assert(numel(a)==cfg.grfN+4 && all(a(end-1:end)<=0));
-% Endpoint slope does change the integral by dt^2*delta_b/12.
+assert(numel(a)==cfg.grfN+3 && h.slopes(1)==h.slopes(end) && a(end)<=0);
+% A shared endpoint slope changes the shape while leaving total impulse intact.
 q=a; q(end)=q(end)-3;
 h3=hermite_horizontal_grf(q,Ts,t,cfg);
-assert(abs(h3.impulse-h.impulse-3*dt^2/12)<1e-13);
+assert(abs(h3.impulse-h.impulse)<1e-13);
 assert(abs(trapz(t,h3.f)-h3.impulse)<1e-8);
 assert(max(abs(cumtrapz(t,h3.f)-h3.integral))<1e-8);
 assert(max(abs(cumtrapz(t,h3.integral)-h3.doubleIntegral))<1e-8);
@@ -40,14 +40,14 @@ assert(max(abs(r.exactToeResidual),[],'all')<1e-10);
 for points=[5 8]
  other=optimization_settings(); other.grfN=points; other.starts=max(16,(points-4)*(points-3));
  other=configure_horizontal_grf(other);
- assert(numel(other.initial)==points+4);
+ assert(numel(other.initial)==points+3);
  for pair=1:size(other.grfPairs,1)
   other.grfK=other.grfPairs(pair,1); other.grfJ=other.grfPairs(pair,2);
   z=hermite_horizontal_grf(other.initial,Ts,t,other);
   assert(numel(z.shapeConstraints)==3*(points-1));
   assert(abs(trapz(t,z.f)-z.impulse)<1e-8);
   assert(z.values(other.grfK)==0 && z.slopes(other.grfJ)==0);
-  assert(all(z.slopes([1 end])<=0));
+  assert(z.slopes(1)==z.slopes(end) && z.slopes(1)<=0);
  end
 end
 fprintf('Hermite GRF: analytic integrals, continuity, extrema, and model wiring passed.\n');
