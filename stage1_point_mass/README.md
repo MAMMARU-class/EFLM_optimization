@@ -41,6 +41,18 @@ overrides.stanceScale = [0.4, 2.5, 1.0];
 力積ゼロ、符号順序、`abs(f)<=1`、摩擦円錐を制約とします。
 zero-crossing の点番号 k と最大絶対値の点番号 j は広域段階で探索し、最良の組合せで狭域探索を行います。
 `starts` は全組合せへの総開始点数であり、`(grfN-4)*(grfN-3)` 以上にしてください。
+組合せを制限する場合は次のように指定します。
+
+```matlab
+overrides.restrictGrfPairs = true;
+overrides.grfPairSelection = [3, 2; 3, 4]; % 各行が [k,j]
+```
+
+`false` なら全組合せを探索し、ペア指定は無視します。`true` なら指定行だけを探索します。
+重複行は1組にまとめます。空・範囲外・k=jの指定はエラーです。
+制限時の `starts` の最小値は重複除去後の指定組数です。
+実行ファイルの既定設定では `startsPerPair=1000` に組数を掛けて総開始点数を計算するため、組数を減らすと実行数も減ります。
+構造体引数で実行する場合、`overrides.starts` は引き続き総数なので必要に応じて指定してください。
 詳細と積分式は [水平床反力の仕様](../_docs/stage1_horizontal_hermite_grf.md) に記載しています。
 
 構造体引数では必要な項目だけ上書きできます。例えば `options.stanceScale=[0.5,2.0,1.0]` とし、ほかの変数を省略できます。省略項目は `common/parameters/optimization_settings.m` の値になります。従来の `options.lower`、`options.upper`、`options.initial` は受け付けません。

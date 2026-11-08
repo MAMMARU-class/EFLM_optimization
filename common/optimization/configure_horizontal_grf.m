@@ -15,13 +15,24 @@ cfg.variableNames=[cfg.variableNames,{'grfBetaEndpoint'}];
 cfg.lower=[cfg.lower(1:6),repmat(1e-4,1,n-4),endpointBounds(1)];
 cfg.upper=[cfg.upper(1:6),repmat(1-1e-4,1,n-4),endpointBounds(2)];
 cfg.initial=[cfg.initial(1:6),repmat(.5,1,n-4),endpointBounds(3)];
-cfg.grfPairs=[];
-for k=3:n-2
- for j=setdiff(2:n-1,k)
-  cfg.grfPairs(end+1,:)=[k,j]; %#ok<AGROW>
+validateattributes(cfg.restrictGrfPairs,{'logical'},{'scalar'},mfilename,'restrictGrfPairs');
+if cfg.restrictGrfPairs
+ pairs=cfg.grfPairSelection;
+ validateattributes(pairs,{'numeric'},{'2d','ncols',2,'nonempty','real','finite','integer'},mfilename,'grfPairSelection');
+ if any(pairs(:,1)<3 | pairs(:,1)>n-2 | pairs(:,2)<2 | pairs(:,2)>n-1 | pairs(:,1)==pairs(:,2))
+  error('EFLM:GRFPairs','Each [k,j] must satisfy 3<=k<=n-2, 2<=j<=n-1 and k~=j.');
  end
+ cfg.grfPairs=unique(pairs,'rows','stable');
+ cfg.grfK=cfg.grfPairs(1,1); cfg.grfJ=cfg.grfPairs(1,2);
+else
+ cfg.grfPairs=[];
+ for k=3:n-2
+  for j=setdiff(2:n-1,k)
+   cfg.grfPairs(end+1,:)=[k,j]; %#ok<AGROW>
+  end
+ end
+ cfg.grfK=ceil(n/2); choices=setdiff(2:n-1,cfg.grfK); cfg.grfJ=choices(1);
 end
-cfg.grfK=ceil(n/2); choices=setdiff(2:n-1,cfg.grfK); cfg.grfJ=choices(1);
 cfg.shapeConstraintCount=3*(n-1);
 validateattributes(cfg.starts,{'numeric'},{'scalar','integer','>=',size(cfg.grfPairs,1)});
 end

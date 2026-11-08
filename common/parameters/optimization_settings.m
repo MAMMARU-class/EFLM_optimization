@@ -20,5 +20,7 @@ cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
 cfg.minimumStance=.2; cfg.minimumFlight=.2;
 cfg.grfN=7; % Number of uniformly spaced horizontal-force control points.
+cfg.restrictGrfPairs=false; % true: search only grfPairSelection.
+cfg.grfPairSelection=zeros(0,2); % Rows are [k,j].
 cfg.grfBetaEndpoint=[-.4 0 0]; % Shared dimensionless endpoint beta [lower, upper, initial].
 end

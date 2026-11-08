@@ -9,6 +9,8 @@ if useDefaults
     overrides = struct;
     overrides.AmpH = [10, 35, 20];                  % [N]
     overrides.grfN = 15;                          % number of Hermite control points (>=5)
+    overrides.restrictGrfPairs = false;           % true: use only the [k,j] rows below
+    overrides.grfPairSelection = [3, 2; 3, 4];   % each row is one pair; ignored when false
     overrides.grfBetaEndpoint = [-0.4, 0, 0];    % shared dimensionless beta [lower, upper, initial]
     overrides.thetaL = deg2rad([40, 65, 50]);      % [rad]
     overrides.v = [1.0, 3.5, 1.0];                % [m/s]
@@ -17,7 +19,13 @@ if useDefaults
     overrides.stanceScale = [0.5, 2.0, 1.0];       % [-]
 
     % 
-    overrides.starts = 1000 * 11 * 12;
+    startsPerPair = 1000;
+    if overrides.restrictGrfPairs
+        pairCount = size(unique(overrides.grfPairSelection,'rows'),1);
+    else
+        pairCount = (overrides.grfN-4)*(overrides.grfN-3);
+    end
+    overrides.starts = startsPerPair * pairCount;
     overrides.localStarts = 500;
     overrides.useParallel = true;
     overrides.parallelWorkers = 16;

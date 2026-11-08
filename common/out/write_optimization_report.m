@@ -48,6 +48,9 @@ if isfield(cfg,'grfN')
  fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d, slopes [s^-1]\n',cfg.grfN);
  fprintf(fid, 'Slope rule    : beta_i=(f_(i+1)-f_(i-1))/2, beta_j=0; shared endpoint beta<=0; b=beta/dt\n');
  fprintf(fid, 'Discrete search: %d (k,j) pairs share the broad starts\n',size(cfg.grfPairs,1));
+ if isfield(cfg,'restrictGrfPairs') && cfg.restrictGrfPairs
+  fprintf(fid,'Selected pairs: %s\n',mat2str(cfg.grfPairs));
+ end
 end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
