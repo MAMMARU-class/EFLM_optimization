@@ -1,5 +1,7 @@
 # 立脚時間倍率を含む stage1 最適化
 
+以下は初期速度ベースを導入した時点の記録。現行の基準時間は [平均速度・Hermiteモーメントによる方式](stage1_mean_velocity_hermite.md) に変更した。倍率を基準時間へ掛ける構造は共通。
+
 最適化変数は `[AmpH, thetaL, v, Duty, r0, stanceScale]` の6つ。
 
 \[

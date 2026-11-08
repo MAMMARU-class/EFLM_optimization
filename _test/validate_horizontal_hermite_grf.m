@@ -19,7 +19,7 @@ expected(cfg.grfJ-1)=0;
 assert(max(abs(h.slopes(2:end-1)'-expected))<1e-12);
 assert(numel(a)==cfg.grfN+3 && h.slopes(1)==h.slopes(end) && a(end)<=0);
 % A shared endpoint slope changes the shape while leaving total impulse intact.
-q=a; q(end)=q(end)-3;
+q=a; q(end)=q(end)-.1;
 h3=hermite_horizontal_grf(q,Ts,t,cfg);
 assert(abs(h3.impulse-h.impulse)<1e-13);
 assert(abs(trapz(t,h3.f)-h3.impulse)<1e-8);

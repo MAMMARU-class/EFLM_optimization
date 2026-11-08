@@ -7,7 +7,7 @@ p=robot_parameters(); cfg=optimization_settings();
 cfg.starts=16; cfg.localStarts=2; cfg.maxIterations=3; cfg.maxEvaluations=100;
 cfg.parallelWorkers=4; cfg.nodes=31; cfg.finalNodes=61; cfg.video=false;
 cfg=configure_horizontal_grf(cfg);
-cfg.model='stage1_point_mass'; cfg.method='scaled_initial_velocity';
+cfg.model='stage1_point_mass'; cfg.method='scaled_mean_velocity_hermite';
 cfg.simulationFunction='sim_cycle_stage1_point_mass';
 folder=fullfile(root,'_logs','test',['hermite_smoke_' char(datetime('now','Format','yyyyMMdd_HHmmss_SSS'))]);
 mkdir(folder);

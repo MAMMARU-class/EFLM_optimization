@@ -1,22 +1,12 @@
-function h = hermite_horizontal_grf(a,Ts,t,cfg)
+function h = hermite_horizontal_grf(a,Ts,t,cfg,shapeData)
 % Cubics in local u=(t-ti)/dt. Integrals and extrema are analytic.
 n=cfg.grfN; k=cfg.grfK; j=cfg.grfJ; dt=Ts/(n-1);
-value=zeros(1,n); ratioNodes=setdiff(2:n-1,[k j]); slopeNodes=[1 n];
-value(ratioNodes)=a(7:6+n-4); value(j)=1;
-value(1:k-1)=-value(1:k-1);
-slope=zeros(1,n); slope([1 n])=a(end);
-slope(2:n-1)=(value(3:n)-value(1:n-2))/(2*dt);
-slope(j)=0;
-y0=value(1:end-1); y1=value(2:end);
-b0=slope(1:end-1); b1=slope(2:end);
-coef=[(2*y0-2*y1+dt*(b0+b1))',(-3*y0+3*y1-dt*(2*b0+b1))',...
- (dt*b0)',y0'];
+if nargin<5, shapeData=horizontal_grf_shape(a,cfg); end
+value=shapeData.values; slope=shapeData.beta/dt;
+ratioNodes=shapeData.ratioNodes; slopeNodes=[1 n]; coef=shapeData.coefficients;
 area=dt*(coef(:,1)/4+coef(:,2)/3+coef(:,3)/2+coef(:,4));
-first=[0;cumsum(area)]; second=zeros(n,1);
-for i=1:n-1
- c=coef(i,:);
- second(i+1)=second(i)+dt*first(i)+dt^2*(c(1)/20+c(2)/12+c(3)/6+c(4)/2);
-end
+first=[0;cumsum(area)];
+second=[0;cumsum(dt*first(1:end-1)+dt^2*(coef(:,1)/20+coef(:,2)/12+coef(:,3)/6+coef(:,4)/2))];
 segment=min(n-1,max(1,floor(t(:)/dt)+1)); u=t(:)/dt-(segment-1);
 c=coef(segment,:);
 h.f=((c(:,1).*u+c(:,2)).*u+c(:,3)).*u+c(:,4);
@@ -49,4 +39,5 @@ h.impulse=first(end); h.normalizedImpulse=h.impulse/Ts;
 h.knots=linspace(0,Ts,n)'; h.values=value'; h.slopes=slope';
 h.ratioNodes=ratioNodes; h.slopeNodes=slopeNodes; h.coefficients=coef;
 h.k=k; h.j=j;
+h.beta=shapeData.beta'; h.S=shapeData.S; h.CH=shapeData.CH;
 end

@@ -2,8 +2,15 @@ function b = prescribed_motion_stage1(a,p,n,cfg)
 % Exact integration of m*xdd=Fx, m*zdd=Fz-m*g; toe fixed at world origin.
 A=a(1); alpha=a(2); v=a(3); D=a(4);
 r0=a(5);
-% Initial-velocity geometric time, scaled by the sixth decision variable.
-stanceScale=a(6); TsBase=2*r0*sin(alpha)/v;
+% General displacement identity, also valid before the impulse constraint holds.
+shape=horizontal_grf_shape(a,cfg);
+L=2*r0*sin(alpha);
+gamma=A*(shape.CH-(cfg.grfN-1)*shape.S)/(p.m*(cfg.grfN-1)^2);
+discriminant=v^2-4*gamma*L;
+if ~isfinite(discriminant) || discriminant<0 || v<=0 || L<=0
+ error('EFLM:StanceTime','No real positive short-branch base stance time');
+end
+stanceScale=a(6); TsBase=2*L/(v+sqrt(discriminant));
 Ts=stanceScale*TsBase;
 if ~isfinite(Ts) || Ts<=0
  error('EFLM:StanceTime','Stance time must be finite and positive');
@@ -12,7 +19,7 @@ Tf=Ts*(1/D-1); T=Ts+Tf;
 % Cluster time nodes near touchdown/liftoff to resolve contact constraints.
 t=Ts*(1-cos(linspace(0,pi,n)'))/2; w=pi/Ts; B=pi*p.m*p.g/(2*D);
 x0=-r0*sin(alpha); z0=r0*cos(alpha); vz0=-p.g*Tf/2;
-grf=hermite_horizontal_grf(a,Ts,t,cfg);
+grf=hermite_horizontal_grf(a,Ts,t,cfg,shape);
 Fx=A*grf.f; Fz=B*sin(w*t);
 vx=v+A*grf.integral/p.m;
 x=x0+v*t+A*grf.doubleIntegral/p.m;
@@ -29,4 +36,5 @@ b.flightVx=repmat(vx(end),size(u)); b.flightVz=vz(end)-p.g*u;
 b.distance=b.flightX(end)-x0; b.speed=b.distance/T;
 b.periodic=[b.flightZ(end)-z0,b.flightVx(end)-v,b.flightVz(end)-vz0];
 b.horizontalGRF=grf;
+b.stanceGamma=gamma; b.stanceDiscriminant=discriminant; b.referenceDisplacement=L;
 end

@@ -34,7 +34,7 @@ fprintf(fid, '4. Save detailed trajectory, plots, video, source snapshot and thi
 
 fprintf(fid, 'Search settings (AmpH [N], thetaL [rad], v [m/s], Duty [-], r0 [m]');
 if numel(cfg.initial)>=6, fprintf(fid, ', stanceScale [-]'); end
-if isfield(cfg,'grfN'), fprintf(fid, ', Hermite ratios [-] and slopes [s^-1]'); end
+if isfield(cfg,'grfN'), fprintf(fid, ', Hermite ratios [-] and endpoint beta [-]'); end
 fprintf(fid, ')\n');
 fprintf(fid, '---------------------------------------------------------------\n');
 if isfield(cfg,'method')
@@ -46,7 +46,7 @@ fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));
 if isfield(cfg,'grfN')
  fprintf(fid, 'Variable order: %s\n',strjoin(cfg.variableNames,', '));
  fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d, slopes [s^-1]\n',cfg.grfN);
- fprintf(fid, 'Slope rule    : interior central differences, b_j=0; one shared endpoint slope b_1=b_n<=0\n');
+ fprintf(fid, 'Slope rule    : beta_i=(f_(i+1)-f_(i-1))/2, beta_j=0; shared endpoint beta<=0; b=beta/dt\n');
  fprintf(fid, 'Discrete search: %d (k,j) pairs share the broad starts\n',size(cfg.grfPairs,1));
 end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
@@ -122,6 +122,7 @@ if isfield(b,'horizontalGRF')
  fprintf(fid, '  n=%d, k=%d, j=%d\n',numel(h.knots),h.k,h.j);
  fprintf(fid, '  Shape values   : %s\n',rowText(h.values));
  fprintf(fid, '  Slopes [s^-1]  : %s\n',rowText(h.slopes));
+ if isfield(h,'beta'), fprintf(fid, '  Beta [-]       : %s\n',rowText(h.beta)); end
  fprintf(fid, '  Impulse [N s]  : %.12g\n',a(1)*h.impulse);
  fprintf(fid, '  Integral(f)/Ts : %.12g\n',h.normalizedImpulse);
 end
@@ -143,6 +144,7 @@ fprintf(fid, 'result.mat, summary.csv, trajectory.csv,\n');
 fprintf(fid, 'constraint_residuals.csv, plots/, animation/, source/, settings.mat\n');
 if isfield(b,'horizontalGRF')
  fprintf(fid, 'horizontal_grf_control_points.csv, horizontal_grf_shape_constraints.csv, horizontal_grf_summary.csv\n');
+ if isfield(b.horizontalGRF,'beta'), fprintf(fid,'horizontal_grf_beta.csv\n'); end
 end
 end
 

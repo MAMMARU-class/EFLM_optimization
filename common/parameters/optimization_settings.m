@@ -20,5 +20,5 @@ cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
 cfg.minimumStance=.2; cfg.minimumFlight=.2;
 cfg.grfN=7; % Number of uniformly spaced horizontal-force control points.
-cfg.grfSlopeEndpoint=[-30 0 0]; % Shared start/end slope [lower, upper, initial] [s^-1].
+cfg.grfBetaEndpoint=[-.4 0 0]; % Shared dimensionless endpoint beta [lower, upper, initial].
 end

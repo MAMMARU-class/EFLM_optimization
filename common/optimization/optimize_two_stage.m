@@ -67,7 +67,9 @@ for group=1:numberPairs
  og.localSolverTotal=og.localSolverTotal+oo.localSolverTotal;
  og.localSolverSuccess=og.localSolverSuccess+oo.localSolverSuccess;
  if isempty(xx), continue; end
- trial=evaluate(xx); violation=trial.maxViolation;
+ trial=evaluate(xx);
+ if ~trial.success, continue; end
+ violation=trial.maxViolation;
  feasible=violation<=cfg.constraintTolerance;
  incumbentFeasible=bestViolation<=cfg.constraintTolerance;
  if isempty(xg) || (feasible && ~incumbentFeasible) || ...
@@ -89,8 +91,8 @@ localElapsed=toc(stageClock);
 best=xg;
 if ~isempty(xl)
  rg=evaluate(xg); rl=evaluate(xl);
- if (rl.maxViolation<=cfg.constraintTolerance && (rg.maxViolation>cfg.constraintTolerance || fl<fg)) || ...
-   (rg.maxViolation>cfg.constraintTolerance && rl.maxViolation<rg.maxViolation)
+ if rl.success && ((rl.maxViolation<=cfg.constraintTolerance && (rg.maxViolation>cfg.constraintTolerance || fl<fg)) || ...
+   (rg.maxViolation>cfg.constraintTolerance && rl.maxViolation<rg.maxViolation))
   best=xl;
  end
 end
@@ -126,11 +128,12 @@ for pass=1:16
  active=unique([active;(numel(dense.constraintChannels)+1:numel(dense.constraints))']);
  [candidate,~,flag,out]=fmincon(@objective,best,[],[],[],[],localLo,localHi,...
   @activeConstraints,options);
- check=simulate(lo+candidate.*width,p,tab,cfg,cfg.finalNodes);
+ check=evaluate(candidate);
  polishStats.starts=polishStats.starts+1;
  polishStats.successfulStarts=polishStats.successfulStarts+(flag>0);
  if isfield(out,'iterations'), polishStats.iterations=polishStats.iterations+out.iterations; end
  if isfield(out,'funcCount'), polishStats.functionEvaluations=polishStats.functionEvaluations+out.funcCount; end
+ if ~check.success, break; end
  if check.maxViolation<=cfg.constraintTolerance && ...
    (incumbentDense.maxViolation>cfg.constraintTolerance || check.objective<incumbentDense.objective)
   incumbent=candidate; incumbentDense=check;

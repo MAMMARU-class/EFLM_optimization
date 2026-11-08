@@ -24,7 +24,7 @@ cfg=configure_horizontal_grf(cfg);
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
-cfg.method='scaled_initial_velocity';
+cfg.method='scaled_mean_velocity_hermite';
 cfg.simulationFunction='sim_cycle_stage1_point_mass';
 cfg.cacheFunction='build_exact_geometry_cache';
 validateattributes(cfg.lower,{'numeric'},{'row','real','finite'});
