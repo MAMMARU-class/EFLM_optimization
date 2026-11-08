@@ -35,4 +35,5 @@ else
 end
 cfg.shapeConstraintCount=3*(n-1);
 validateattributes(cfg.starts,{'numeric'},{'scalar','integer','>=',size(cfg.grfPairs,1)});
+cfg=configure_vertical_grf(cfg);
 end

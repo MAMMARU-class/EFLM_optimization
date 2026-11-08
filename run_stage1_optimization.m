@@ -9,8 +9,21 @@ if useDefaults
     overrides = struct;
     overrides.AmpH = [10, 35, 20];                  % [N]
     overrides.grfN = 15;                          % number of Hermite control points (>=5)
-    overrides.restrictGrfPairs = false;           % true: use only the [k,j] rows below
-    overrides.grfPairSelection = [3, 2; 3, 4];   % each row is one pair; ignored when false
+    overrides.grfZN = 9;                          % vertical control points (>=3)
+    overrides.grfZBetaStart = [0, 0.5, 0];         % dimensionless [lower, upper, initial]
+    overrides.grfZBetaEnd = [-0.5, 0, 0];          % dimensionless [lower, upper, initial]
+
+    % 
+    overrides.restrictGrfPairs = true;           % true: use only the [k,j] rows below
+    overrides.grfPairSelection = [ ...
+        7, 4; 7, 5; 7, 6; 7, 8; 7, 9; 7, 10; ...
+        8, 5; 8, 6; 8, 7; 8, 9; 8, 10; 8, 11; ...
+        9, 6; 9, 7; 9, 8; 9, 10; 9, 11; 9, 12; ...
+        10, 7; 10, 8; 10, 9; 10, 11; 10, 12; 10, 13; ...
+        11, 8; 11, 9; 11, 10; 11, 12; 11, 13; 11, 14; ...
+    ];
+
+    % 
     overrides.grfBetaEndpoint = [-0.4, 0, 0];    % shared dimensionless beta [lower, upper, initial]
     overrides.thetaL = deg2rad([40, 65, 50]);      % [rad]
     overrides.v = [1.0, 3.5, 1.0];                % [m/s]

@@ -32,6 +32,11 @@ if count>0
  starts(2:count+1,1:6)=min(1,max(0,(seeds-lo(1:6))./width(1:6)));
  starts(2:count+1,7:end)=repmat(x0(7:end),count,1);
 end
+% Start vertical values on their simplex; retain independent endpoint seeds.
+zi=cfg.grfZIndices(1:end-2);
+physical=lo(zi)+starts(:,zi).*width(zi);
+physical=physical./sum(physical,2);
+starts(:,zi)=(physical-lo(zi))./width(zi);
 problem=createOptimProblem('fmincon','x0',x0,'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(1,nvars),'ub',ones(1,nvars),'options',options);
 % Discrete knot choices stay fixed during each smooth local optimization.
@@ -169,8 +174,8 @@ result.matlabVersion=version; result.createdAt=char(datetime('now','TimeZone','A
    if r.body.distance<=0 || ~isfinite(r.objective), error('EFLM:Distance','Nonpositive travel'); end
   catch ME
    if ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end
-   r=struct('objective',cfg.penalty+sum(x.^2),'constraints',ones(16*cfg.nodes+cfg.shapeConstraintCount+3,1),...
-    'constraintEnvelope',ones(19+cfg.shapeConstraintCount,1),'equalityConstraints',1,...
+   r=struct('objective',cfg.penalty+sum(x.^2),'constraints',ones(16*cfg.nodes+cfg.shapeConstraintCount+4,1),...
+    'constraintEnvelope',ones(20+cfg.shapeConstraintCount,1),'equalityConstraints',ones(2,1),...
     'maxViolation',1,'cot',NaN,'body',struct('speed',NaN),'success',false);
   end
   lastX=x; lastR=r;

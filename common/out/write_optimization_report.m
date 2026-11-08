@@ -53,6 +53,11 @@ if isfield(cfg,'grfN')
  end
 end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
+if isfield(cfg,'grfZN')
+ fprintf(fid,'Vertical GRF: cubic Hermite, n=%d; interior beta from adjacent points\n',cfg.grfZN);
+ fprintf(fid,'Vertical start beta [lower upper initial]: %s\n',rowText(cfg.grfZBetaStart));
+ fprintf(fid,'Vertical end beta [lower upper initial]  : %s\n',rowText(cfg.grfZBetaEnd));
+end
 fprintf(fid, 'Narrow starts: %d\n', cfg.localStarts);
 fprintf(fid, 'Narrow radius: %.6g of each scaled broad interval\n', cfg.localRadius);
 fprintf(fid, 'Local solver : %s/fmincon\n', cfg.algorithm);
@@ -130,6 +135,13 @@ if isfield(b,'horizontalGRF')
  fprintf(fid, '  Integral(f)/Ts : %.12g\n',h.normalizedImpulse);
 end
 fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
+if isfield(b,'verticalGRF')
+ h=b.verticalGRF;
+ fprintf(fid,'Vertical GRF control points\n');
+ fprintf(fid,'  Shape values   : %s\n',rowText(h.values));
+ fprintf(fid,'  Beta [-]       : %s\n',rowText(h.beta));
+ fprintf(fid,'Initial vertical velocity [m/s]: %.12g\n',b.vz0);
+end
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);
 fprintf(fid, 'Distance [m]         : %.12g\n', b.distance);
@@ -144,6 +156,9 @@ fprintf(fid, 'Periodicity residual : %s\n\n', rowText(b.periodic));
 fprintf(fid, 'Artifacts\n');
 fprintf(fid, '---------\n');
 fprintf(fid, 'result.mat, summary.csv, trajectory.csv,\n');
+if isfield(b,'verticalGRF')
+ fprintf(fid,'vertical_grf_control_points.csv, vertical_grf_shape_constraints.csv\n');
+end
 fprintf(fid, 'constraint_residuals.csv, plots/, animation/, source/, settings.mat\n');
 if isfield(b,'horizontalGRF')
  fprintf(fid, 'horizontal_grf_control_points.csv, horizontal_grf_shape_constraints.csv, horizontal_grf_summary.csv\n');

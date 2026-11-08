@@ -17,16 +17,19 @@ if ~isfinite(Ts) || Ts<=0
 end
 Tf=Ts*(1/D-1); T=Ts+Tf;
 % Cluster time nodes near touchdown/liftoff to resolve contact constraints.
-t=Ts*(1-cos(linspace(0,pi,n)'))/2; w=pi/Ts; B=pi*p.m*p.g/(2*D);
-x0=-r0*sin(alpha); z0=r0*cos(alpha); vz0=-p.g*Tf/2;
+t=Ts*(1-cos(linspace(0,pi,n)'))/2;
+gz=hermite_vertical_grf(a,Ts,t,cfg);
+Az=p.m*p.g*T/gz.impulse;
+vz0=p.g*(gz.C*gz.dt/gz.S-T/2);
+x0=-r0*sin(alpha); z0=r0*cos(alpha);
 grf=hermite_horizontal_grf(a,Ts,t,cfg,shape);
-Fx=A*grf.f; Fz=B*sin(w*t);
+Fx=A*grf.f; Fz=Az*gz.f;
 vx=v+A*grf.integral/p.m;
 x=x0+v*t+A*grf.doubleIntegral/p.m;
-vz=vz0+B/(w*p.m)*(1-cos(w*t))-p.g*t;
-z=z0+vz0*t+B/(w*p.m)*(t-sin(w*t)/w)-p.g*t.^2/2;
+vz=vz0+Az*gz.integral/p.m-p.g*t;
+z=z0+vz0*t+Az*gz.doubleIntegral/p.m-p.g*t.^2/2;
 b=struct('t',t,'x',x,'z',z,'vx',vx,'vz',vz,'Fx',Fx,'Fz',Fz,...
- 'dFx',A*grf.df,'dFz',w*B*cos(w*t),...
+ 'dFx',A*grf.df,'dFz',Az*gz.df,...
  'Ts',Ts,'Tf',Tf,'T',T,'r0',r0,'TsBase',TsBase,'stanceScale',stanceScale);
 b.flightTime=linspace(0,Tf,max(3,ceil(n*Tf/Ts)))';
 u=b.flightTime;
@@ -36,5 +39,6 @@ b.flightVx=repmat(vx(end),size(u)); b.flightVz=vz(end)-p.g*u;
 b.distance=b.flightX(end)-x0; b.speed=b.distance/T;
 b.periodic=[b.flightZ(end)-z0,b.flightVx(end)-v,b.flightVz(end)-vz0];
 b.horizontalGRF=grf;
+gz.amplitude=Az; b.verticalGRF=gz; b.vz0=vz0;
 b.stanceGamma=gamma; b.stanceDiscriminant=discriminant; b.referenceDisplacement=L;
 end
