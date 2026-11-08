@@ -20,7 +20,8 @@ for n=[4 7 21]
    for row=1:size(a,1)
     Ts=a(row,6)*2*a(row,5)*sin(a(row,2))/a(row,3);
     h=hermite_horizontal_grf(seed(row,:),Ts,linspace(0,Ts,15)',cfg);
-    forward=diff(h.values)'/(Ts/(n-1)); expected=[forward forward(end)];
+    expected=zeros(1,n);
+    expected(2:n-1)=(h.values(3:n)'-h.values(1:n-2)')/(2*Ts/(n-1));
     nodes=setdiff(1:n,cfg.grfJ);
     expected(nodes)=min(upper(columns),max(lower(columns),expected(nodes)));
     expected(cfg.grfJ)=0;
@@ -35,5 +36,5 @@ end
 invalid=cfg.initial; invalid(3)=0;
 [seed,check]=initialize_horizontal_grf_slopes(invalid,cfg);
 assert(isequal(seed,invalid) && ~check.feasible);
-fprintf('Secant initialization: bounds, fixed peak, unchanged ratios, and analytic checks passed.\n');
+fprintf('Central-difference initialization: bounds, zero endpoints and peak, unchanged ratios, and analytic checks passed.\n');
 end

@@ -1,5 +1,6 @@
 function [a,check] = initialize_horizontal_grf_slopes(a,cfg,lower,upper)
-% Initialize a batch of starts using forward secants in physical time.
+% Initialize interior slopes from neighboring knots in physical time.
+% Endpoint slopes start at zero. The prescribed peak slope also stays zero.
 % Only slope entries are changed; all other variables and search bounds stay intact.
 if nargin<3, lower=cfg.lower; upper=cfg.upper; end
 n=cfg.grfN; k=cfg.grfK; j=cfg.grfJ; count=size(a,1);
@@ -10,8 +11,8 @@ values(:,j)=1; values(:,1:k-1)=-values(:,1:k-1);
 dt=(a(:,6).*2.*a(:,5).*sin(a(:,2))./a(:,3))/(n-1);
 valid=isfinite(dt) & dt>0;
 safeDt=dt; safeDt(~valid)=1;
-secant=diff(values,1,2)./safeDt;
-slopes=[secant,secant(:,end)]; % Last point uses the preceding interval.
+slopes=zeros(count,n);
+slopes(:,2:n-1)=(values(:,3:n)-values(:,1:n-2))./(2*safeDt);
 slopes(:,slopeNodes)=min(upper(slopeColumns),max(lower(slopeColumns),slopes(:,slopeNodes)));
 slopes(:,j)=0;
 slopes(~valid,slopeNodes)=a(~valid,slopeColumns);

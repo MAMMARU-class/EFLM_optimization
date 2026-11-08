@@ -46,7 +46,7 @@ fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));
 if isfield(cfg,'grfN')
  fprintf(fid, 'Variable order: %s\n',strjoin(cfg.variableNames,', '));
  fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d, slopes [s^-1]\n',cfg.grfN);
- fprintf(fid, 'Slope seeds   : bounded forward secants; b_j=0; last point uses backward secant\n');
+ fprintf(fid, 'Slope seeds   : bounded central differences; b_1=b_n=b_j=0 when within bounds\n');
  fprintf(fid, 'Discrete search: %d (k,j) pairs share the broad starts\n',size(cfg.grfPairs,1));
 end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);
