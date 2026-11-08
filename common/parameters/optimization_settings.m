@@ -20,5 +20,6 @@ cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
 cfg.minimumStance=.2; cfg.minimumFlight=.2;
 cfg.grfN=7; % Number of uniformly spaced horizontal-force control points.
-cfg.grfSlope=[-45 45 0]; % [lower, upper, endpoint seed magnitude]; 0 uses 1 [s^-1].
+cfg.grfSlopeStart=[-30 0 0]; % [lower, upper, initial] [s^-1].
+cfg.grfSlopeEnd=[-30 0 0];   % [lower, upper, initial] [s^-1].
 end

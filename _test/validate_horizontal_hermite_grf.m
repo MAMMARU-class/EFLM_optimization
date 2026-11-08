@@ -17,7 +17,7 @@ end
 expected=(h.values(3:end)'-h.values(1:end-2)')/(2*dt);
 expected(cfg.grfJ-1)=0;
 assert(max(abs(h.slopes(2:end-1)'-expected))<1e-12);
-assert(numel(a)==cfg.grfN+4 && all(a(end-1:end)<0));
+assert(numel(a)==cfg.grfN+4 && all(a(end-1:end)<=0));
 % Endpoint slope does change the integral by dt^2*delta_b/12.
 q=a; q(end)=q(end)-3;
 h3=hermite_horizontal_grf(q,Ts,t,cfg);
@@ -47,7 +47,7 @@ for points=[5 8]
   assert(numel(z.shapeConstraints)==3*(points-1));
   assert(abs(trapz(t,z.f)-z.impulse)<1e-8);
   assert(z.values(other.grfK)==0 && z.slopes(other.grfJ)==0);
-  assert(all(z.slopes([1 end])<0));
+  assert(all(z.slopes([1 end])<=0));
  end
 end
 fprintf('Hermite GRF: analytic integrals, continuity, extrema, and model wiring passed.\n');

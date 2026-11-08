@@ -46,7 +46,7 @@ fprintf(fid, 'Initial point: %s\n', rowText(cfg.initial));
 if isfield(cfg,'grfN')
  fprintf(fid, 'Variable order: %s\n',strjoin(cfg.variableNames,', '));
  fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d, slopes [s^-1]\n',cfg.grfN);
- fprintf(fid, 'Slope rule    : interior central differences, b_j=0; only b_1<0 and b_n<0 are free\n');
+ fprintf(fid, 'Slope rule    : interior central differences, b_j=0; only b_1<=0 and b_n<=0 are free\n');
  fprintf(fid, 'Discrete search: %d (k,j) pairs share the broad starts\n',size(cfg.grfPairs,1));
 end
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);

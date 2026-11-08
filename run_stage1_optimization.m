@@ -9,7 +9,8 @@ if useDefaults
     overrides = struct;
     overrides.AmpH = [1, 35, 10];                  % [N]
     overrides.grfN = 15;                          % number of Hermite control points (>=5)
-    overrides.grfSlope = [-40, 40, 0];            % [lower, upper, endpoint seed magnitude] [s^-1]; 0 uses 1
+    overrides.grfSlopeStart = [-30, 0, 0];       % [lower, upper, initial] [s^-1]
+    overrides.grfSlopeEnd = [-30, 0, 0];         % [lower, upper, initial] [s^-1]
     overrides.thetaL = deg2rad([30, 65, 50]);      % [rad]
     overrides.v = [0.4, 4.0, 1.0];                % [m/s]
     overrides.Duty = [0.1, 0.60, 0.10];          % [-]
