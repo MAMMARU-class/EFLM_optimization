@@ -41,7 +41,7 @@ for i=1:n-1
  direction=1; if i<k, direction=-1; end
  shape(i,1)=max([-direction*value(i:i+1),1e-4-direction*extrema]);
  shape(i,2)=max(abs([value(i:i+1),extrema]))-1;
- % Reject identically zero segments (notably possible when k=2).
+ % Reject intervals whose force remains identically zero.
  shape(i,3)=1e-4-direction*area(i)/dt;
 end
 h.shapeConstraints=shape(:);

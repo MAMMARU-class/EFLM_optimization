@@ -38,7 +38,7 @@ overrides.stanceScale = [0.4, 2.5, 1.0];
 端点の傾き2個を最適化し、どちらも負に制限します。内部傾きは前後の点から計算し、最大値点 `j` の傾きは0に固定します。
 力積ゼロ、符号順序、`abs(f)<=1`、摩擦円錐を制約とします。
 zero-crossing の点番号 k と最大絶対値の点番号 j は広域段階で探索し、最良の組合せで狭域探索を行います。
-`starts` は全組合せへの総開始点数であり、`(grfN-3)^2` 以上にしてください。
+`starts` は全組合せへの総開始点数であり、`(grfN-4)*(grfN-3)` 以上にしてください。
 詳細と積分式は [水平床反力の仕様](../_docs/stage1_horizontal_hermite_grf.md) に記載しています。
 
 構造体引数では必要な項目だけ上書きできます。例えば `options.stanceScale=[0.5,2.0,1.0]` とし、ほかの変数を省略できます。省略項目は `common/parameters/optimization_settings.m` の値になります。従来の `options.lower`、`options.upper`、`options.initial` は受け付けません。

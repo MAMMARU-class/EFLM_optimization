@@ -9,7 +9,7 @@ for n=[19 20 21]
  override=struct('AmpH',[1 35 10],'thetaL',deg2rad([30 65 50]),...
   'v',[.4 4 1],'Duty',[.1 .6 .1],'r0',[.25 .33 .30],...
   'stanceScale',[.5 2 1],'grfN',n,'grfSlope',[-40 40 0],...
-  'starts',max(sampleStarts,(n-3)^2),'useParallel',true,'parallelWorkers',16);
+  'starts',max(sampleStarts,(n-4)*(n-3)),'useParallel',true,'parallelWorkers',16);
  cfg=configure_horizontal_grf(apply_stage1_overrides(cfg,override));
  prepare_optimization_pool(cfg);
  lo=cfg.lower; width=cfg.upper-lo; nvars=numel(lo);
@@ -19,7 +19,7 @@ for n=[19 20 21]
   'FiniteDifferenceStepSize',1e-6);
  ms=MultiStart('Display','off','UseParallel',true,'StartPointsToRun','all','MaxTime',Inf);
  rng(cfg.seed,'twister');
- pairList=[2,3;3,n-1;floor(n/3),2;ceil(n/2),2;...
+ pairList=[3,2;3,n-1;floor(n/3),2;ceil(n/2),2;...
   ceil(n/2),ceil(n/2)+1;n-2,n-1];
  for pair=1:size(pairList,1)
   cfg.grfK=pairList(pair,1); cfg.grfJ=pairList(pair,2);

@@ -36,9 +36,9 @@ assert(numel(r.constraintEnvelope)==19+cfg.shapeConstraintCount);
 assert(abs(r.equalityConstraints)<1e-12);
 assert(abs(r.body.periodic(2))<1e-12);
 assert(max(abs(r.exactToeResidual),[],'all')<1e-10);
-% Configurable n also covers the n=4 boundary (no free ratio variables).
-for points=[4 8]
- other=optimization_settings(); other.grfN=points; other.starts=max(16,(points-3)^2);
+% Configurable n also covers the n=5 boundary (one free ratio variable).
+for points=[5 8]
+ other=optimization_settings(); other.grfN=points; other.starts=max(16,(points-4)*(points-3));
  other=configure_horizontal_grf(other);
  assert(numel(other.initial)==points+4);
  for pair=1:size(other.grfPairs,1)

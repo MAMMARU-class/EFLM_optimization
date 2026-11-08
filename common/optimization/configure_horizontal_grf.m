@@ -1,7 +1,7 @@
 function cfg = configure_horizontal_grf(cfg)
 % n is fixed for one run; k and j are categorical choices in the broad stage.
 n=cfg.grfN;
-validateattributes(n,{'numeric'},{'scalar','integer','>=',4});
+validateattributes(n,{'numeric'},{'scalar','integer','>=',5});
 validateattributes(cfg.grfSlope,{'numeric'},{'real','finite','size',[1 3]});
 endpointMargin=1e-4;
 if cfg.grfSlope(1)>=-endpointMargin || cfg.grfSlope(2)<=cfg.grfSlope(1)
@@ -19,7 +19,7 @@ cfg.lower=[cfg.lower(1:6),repmat(1e-4,1,n-4),cfg.grfSlope(1),cfg.grfSlope(1)];
 cfg.upper=[cfg.upper(1:6),repmat(1-1e-4,1,n-4),endpointUpper,endpointUpper];
 cfg.initial=[cfg.initial(1:6),repmat(.5,1,n-4),-endpointSeed,-endpointSeed];
 cfg.grfPairs=[];
-for k=2:n-2
+for k=3:n-2
  for j=setdiff(2:n-1,k)
   cfg.grfPairs(end+1,:)=[k,j]; %#ok<AGROW>
  end
