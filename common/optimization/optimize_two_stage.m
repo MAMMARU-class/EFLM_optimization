@@ -48,7 +48,7 @@ for group=1:numberPairs
  cfg.grfK=pairs(group,1); cfg.grfJ=pairs(group,2); lastX=[]; lastR=[];
  indices=find(pairIndex==group);
  % Give each category a geometric initial point as well as random starts.
- % Balance knot magnitudes where possible, then derive each start's slopes.
+ % Balance knot magnitudes where possible; interior slopes follow the knots.
  seed=cfg.initial; values=.5*ones(1,cfg.grfN); values([1 cfg.grfK end])=0;
  values(cfg.grfJ)=1;
  negative=2:cfg.grfK-1; positive=cfg.grfK+1:cfg.grfN-1;
@@ -58,11 +58,9 @@ for group=1:numberPairs
  ratioNodes=setdiff(2:cfg.grfN-1,[cfg.grfK cfg.grfJ]);
  seed(7:6+cfg.grfN-4)=values(ratioNodes);
  starts(indices(1),:)=(seed-lo)./width;
- [groupStarts,seedCheck]=initialize_horizontal_grf_slopes(lo+starts(indices,:).*width,cfg);
- starts(indices,:)=(groupStarts-lo)./width;
  problem.x0=starts(indices(1),:);
- fprintf('Horizontal GRF: k=%d, j=%d, %d broad starts (shape/impulse-feasible seeds: %d)\n',...
-  cfg.grfK,cfg.grfJ,numel(indices),nnz(seedCheck.feasible));
+ fprintf('Horizontal GRF: k=%d, j=%d, %d broad starts\n',...
+  cfg.grfK,cfg.grfJ,numel(indices));
  [xx,ff,~,oo,ss]=run(ms,problem,CustomStartPointSet(starts(indices,:)));
  collectMessages();
  distinctGlobalSolutions=distinctGlobalSolutions+numel(ss);
@@ -85,12 +83,6 @@ stage=2; stageClock=tic;
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
 startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,nvars)];
-% Preserve the selected broad solution; initialize only the other local starts.
-if cfg.localStarts>1
- localSeeds=initialize_horizontal_grf_slopes(lo+startsLocal(2:end,:).*width,cfg,...
-  lo+localLo.*width,lo+localHi.*width);
- startsLocal(2:end,:)=(localSeeds-lo)./width;
-end
 [xl,fl,~,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
 collectMessages();
 localElapsed=toc(stageClock);

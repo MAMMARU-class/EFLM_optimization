@@ -1,10 +1,12 @@
 function h = hermite_horizontal_grf(a,Ts,t,cfg)
 % Cubics in local u=(t-ti)/dt. Integrals and extrema are analytic.
 n=cfg.grfN; k=cfg.grfK; j=cfg.grfJ; dt=Ts/(n-1);
-value=zeros(1,n); ratioNodes=setdiff(2:n-1,[k j]); slopeNodes=setdiff(1:n,j);
+value=zeros(1,n); ratioNodes=setdiff(2:n-1,[k j]); slopeNodes=[1 n];
 value(ratioNodes)=a(7:6+n-4); value(j)=1;
 value(1:k-1)=-value(1:k-1);
-slope=zeros(1,n); slope(slopeNodes)=a(7+n-4:end);
+slope=zeros(1,n); slope(1)=a(end-1); slope(n)=a(end);
+slope(2:n-1)=(value(3:n)-value(1:n-2))/(2*dt);
+slope(j)=0;
 y0=value(1:end-1); y1=value(2:end);
 b0=slope(1:end-1); b1=slope(2:end);
 coef=[(2*y0-2*y1+dt*(b0+b1))',(-3*y0+3*y1-dt*(2*b0+b1))',...

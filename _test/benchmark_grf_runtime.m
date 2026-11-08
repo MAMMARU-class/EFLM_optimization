@@ -40,7 +40,6 @@ for n=[19 20 21]
   if ~isempty(other), values(other)=min(.95,sum(values(same))/numel(other)); end
   ratioNodes=setdiff(2:n-1,[cfg.grfK cfg.grfJ]);
   candidate(1,7:6+n-4)=values(ratioNodes);
-  candidate=initialize_horizontal_grf_slopes(candidate,cfg);
   starts=(candidate-lo)./width;
   problem=createOptimProblem('fmincon','x0',starts(1,:),...
    'objective',@objective,'nonlcon',@constraints,...

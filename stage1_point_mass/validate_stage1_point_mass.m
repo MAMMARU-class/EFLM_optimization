@@ -3,7 +3,7 @@ function report = validate_stage1_point_mass()
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'stage1_point_mass')));
 p=robot_parameters(); cfg=configure_horizontal_grf(optimization_settings()); tab=build_exact_geometry_cache(p);
-cfg.initial(7:9)=[.5 .75 .75]; % Balanced shape for n=7, k=4, j=2, zero knot slopes.
+cfg.initial(7:9)=[.5 .75 .75]; % Balanced shape for n=7, k=4, j=2.
 r=sim_cycle_stage1_point_mass(cfg.initial,p,tab,cfg,12001);
 h=r.angles(:,1); k=r.angles(:,2); s=r.s; e=1e-20;
 G=-[r.body.Fx,r.body.Fz]; V=-[r.body.vx,r.body.vz];

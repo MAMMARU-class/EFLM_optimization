@@ -9,7 +9,7 @@ if useDefaults
     overrides = struct;
     overrides.AmpH = [1, 35, 10];                  % [N]
     overrides.grfN = 19;                          % number of Hermite control points (>=4)
-    overrides.grfSlope = [-40, 40, 0];            % [lower, upper, fallback] [s^-1]; interior seeds use central differences
+    overrides.grfSlope = [-40, 40, 0];            % [lower, upper, endpoint seed magnitude] [s^-1]; 0 uses 1
     overrides.thetaL = deg2rad([30, 65, 50]);      % [rad]
     overrides.v = [0.4, 4.0, 1.0];                % [m/s]
     overrides.Duty = [0.1, 0.60, 0.10];          % [-]
