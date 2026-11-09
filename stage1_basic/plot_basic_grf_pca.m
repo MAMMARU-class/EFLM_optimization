@@ -63,9 +63,11 @@ for d=1:2
 
  for p=1:3
   pair=pairs(p,:); third=pair(3); fixed=axesValues{third};
-  f=newFigure(max(2400,560*numel(fixed)+260),750); cleanup=onCleanup(@()close(f));
-  layout=tiledlayout(f,1,numel(fixed),'TileSpacing','compact','Padding','compact');
-  for j=1:numel(fixed)
+  for page=1:ceil(numel(fixed)/7)
+  subset=(page-1)*7+1:min(page*7,numel(fixed));
+  f=newFigure(max(2400,560*numel(subset)+260),750); cleanup=onCleanup(@()close(f));
+  layout=tiledlayout(f,1,numel(subset),'TileSpacing','compact','Padding','compact');
+  for j=subset
    selected=selectCases(rows,params,axesValues,pair,fixed(j)); ax=nexttile(layout);
    paint(ax,selected,m,1,axesValues(pair(1:2)),scale(pair(1:2)),labels(pair(1:2)));
    title(ax,sprintf('$%s=%.4g\\;[%s]$',short{third},fixed(j)*scale(third),units{third}),...
@@ -74,8 +76,10 @@ for d=1:2
   sgtitle(layout,sprintf('$%s:\\;\\mathrm{minimum\\ cost},\\quad R=PC1,\\ G=PC2,\\ B=PC3$',notation{d}),...
    'Interpreter','latex','FontSize',26);
   filename=sprintf('pca_05_slices_%s_%s_%s.png',params{pair(1)},params{pair(2)},name);
+  if numel(fixed)>7, filename=strrep(filename,'.png',sprintf('_page%02d.png',page)); end
   exportgraphics(f,fullfile(output,filename),'Resolution',220);
   clear cleanup
+  end
  end
 end
 end
@@ -102,22 +106,19 @@ if kind==1
   channel=zeros(size(selected)); channel(present)=m.rgb(selected(present),j);
   channel(present & ~isfinite(channel))=128/255; rgb(:,:,j)=channel;
  end
- image(ax,x,y,rgb);
+ basic_grid_image(ax,x,y,rgb);
 else
  value=nan(size(selected)); value(present)=m.caseCumulative(selected(present),3);
- h=imagesc(ax,x,y,value); h.AlphaData=double(isfinite(value));
+ basic_grid_image(ax,x,y,value,double(isfinite(value)));
  colormap(ax,parula(256)); clim(ax,[0 100]);
  undefined=present & ~isfinite(value);
  if any(undefined,'all')
   hold(ax,'on');
   neutral=repmat(reshape([.5 .5 .5],1,1,3),[size(selected),1]);
-  h=image(ax,x,y,neutral); h.AlphaData=double(undefined);
+  basic_grid_image(ax,x,y,neutral,double(undefined));
  end
 end
 ax.Color=[0 0 0]; ax.YDir='normal'; ax.XTick=x; ax.YTick=y;
-if numel(x)>1, dx=(x(end)-x(1))/(numel(x)-1); else, dx=max(abs(x(1))*.1,1e-3); end
-if numel(y)>1, dy=(y(end)-y(1))/(numel(y)-1); else, dy=max(abs(y(1))*.1,1e-3); end
-xlim(ax,[x(1)-dx/2 x(end)+dx/2]); ylim(ax,[y(1)-dy/2 y(end)+dy/2]);
 xlabel(ax,labels{1},'Interpreter','latex'); ylabel(ax,labels{2},'Interpreter','latex');
 ax.FontSize=25; ax.LineWidth=1.5; ax.TickLabelInterpreter='latex'; ax.Box='on'; ax.Layer='top';
 end

@@ -6,7 +6,7 @@ s=load(fullfile(folder,'settings.mat'),'cfg','p');
 item=load(fullfile(folder,'cases',sprintf('%06d.mat',caseId)),'record');
 record=item.record;
 if isempty(record.variables), error('EFLM:NoTrajectory','This case has no evaluable final trajectory: %s',record.errorMessage); end
-cfg=s.cfg; cfg.grfK=record.k;
+cfg=basic_record_config(record,s.cfg);
 tab=basic_geometry_cache(s.p);
 r=sim_cycle_stage1_basic(record.variables,s.p,tab,cfg,cfg.nodes);
 result=struct('final',r,'parameters',s.p,'settings',cfg,'bestVariables',record.variables,...

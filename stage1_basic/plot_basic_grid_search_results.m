@@ -69,9 +69,11 @@ for m=1:3
  % Five (or the configured number of) fixed-third slices, side by side.
  for p=1:3
   pair=pairs(p,:); third=pair(3); fixed=axisValues{third};
-  f=newFigure(max(2400,560*numel(fixed)+260),750); cleanup=onCleanup(@()close(f));
-  layout=tiledlayout(f,1,numel(fixed),'TileSpacing','compact','Padding','compact');
-  for s=1:numel(fixed)
+  for page=1:ceil(numel(fixed)/7)
+  subset=(page-1)*7+1:min(page*7,numel(fixed));
+  f=newFigure(max(2400,560*numel(subset)+260),750); cleanup=onCleanup(@()close(f));
+  layout=tiledlayout(f,1,numel(subset),'TileSpacing','compact','Padding','compact');
+  for s=subset
    [values,~]=reducePair(rows,params,axisValues,pair,metrics{m},extremum{m},fixed(s));
    ax=nexttile(layout);
    paintMap(ax,axisValues(pair(1:2)),scale(pair(1:2)),symbols(pair(1:2)),values,valueLimits);
@@ -82,8 +84,10 @@ for m=1:3
    'Interpreter','latex','FontSize',28);
   addColorbar(ax,['$' metricNames{m} '$']);
   filename=sprintf('03_slices_%s_%s_%s.png',params{pair(1)},params{pair(2)},metrics{m});
+  if numel(fixed)>7, filename=strrep(filename,'.png',sprintf('_page%02d.png',page)); end
   exportgraphics(f,fullfile(outputFolder,filename),'Resolution',220);
   clear cleanup
+  end
  end
 end
 fprintf('Parameter maps saved to %s (source: %s)\n',outputFolder,sourceFolder);
@@ -131,13 +135,9 @@ end
 
 function paintMap(ax,axes,scale,symbols,values,limits)
 x=axes{1}*scale(1); y=axes{2}*scale(2);
-image=imagesc(ax,x,y,values);
-image.AlphaData=double(isfinite(values));
+basic_grid_image(ax,x,y,values,double(isfinite(values)));
 ax.Color=[0 0 0]; ax.YDir='normal'; colormap(ax,parula(256)); clim(ax,limits);
 ax.XTick=x; ax.YTick=y;
-if numel(x)>1, dx=(x(end)-x(1))/(numel(x)-1); else, dx=max(abs(x(1))*.1,1); end
-if numel(y)>1, dy=(y(end)-y(1))/(numel(y)-1); else, dy=max(abs(y(1))*.1,1); end
-xlim(ax,[x(1)-dx/2 x(end)+dx/2]); ylim(ax,[y(1)-dy/2 y(end)+dy/2]);
 xlabel(ax,symbols{1},'Interpreter','latex'); ylabel(ax,symbols{2},'Interpreter','latex');
 ax.FontSize=25; ax.LineWidth=1.5; ax.TickLabelInterpreter='latex';
 ax.Box='on'; ax.Layer='top';

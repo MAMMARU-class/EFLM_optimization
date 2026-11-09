@@ -9,7 +9,7 @@ count=height(rows); fx=nan(count,numel(phase)); fz=fx;
 areaX=nan(count,1); areaZ=areaX; stanceTime=areaX;
 for i=find(rows.feasible==1)'
  item=load(fullfile(folder,'cases',sprintf('%06d.mat',rows.caseId(i))),'record');
- cfg=saved.cfg; cfg.grfK=item.record.k;
+ cfg=basic_record_config(item.record,saved.cfg);
  body=prescribed_motion_basic(item.record.variables,saved.p,3,cfg);
  x=sampleCubic(body.horizontalGRF.coefficients,phase)*body.horizontalGRF.amplitude;
  z=sampleCubic(body.verticalGRF.coefficients,phase)*body.verticalGRF.amplitude;

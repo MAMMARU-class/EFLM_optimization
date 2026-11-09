@@ -6,7 +6,12 @@ fprintf(fid,'Stage1 basic grid search\n========================\n');
 fprintf(fid,'Status: %s\nStarted: %s\nExecution time [s]: %.6f\nMATLAB: %s\nGit: %s\n',...
  meta.status,meta.startedAt,meta.elapsed,meta.matlabVersion,meta.gitCommit);
 fprintf(fid,'Completed combinations: %d / %d\n',height(summary),meta.totalCases);
-fprintf(fid,'Route: basic grid -> each k -> broad MultiStart only\n');
+if isfield(meta,'phase')
+ fprintf(fid,'Phase: %s\nRoute: adaptive basic grid -> each selected k -> MultiStart\n',meta.phase);
+ fprintf(fid,'Retained parents keep their original discretization and per-case bounds in cases/*.mat.\n');
+else
+ fprintf(fid,'Route: basic grid -> each k -> broad MultiStart only\n');
+end
 fprintf(fid,'Grid [center half-width count]\n');
 names={'vx0 [m/s]','thetaL [rad]','r0 [m]'};
 for i=1:3, fprintf(fid,'  %-14s: %.12g %.12g %d\n',names{i},cfg.gridSpecs(i,:)); end
@@ -20,7 +25,7 @@ fprintf(fid,'Every completed combination is saved in cases/ and summary.csv. No 
 if ~isempty(summary)
  fprintf(fid,'Feasible combinations: %d\n',nnz(summary.feasible));
  fprintf(fid,'Total iterations: %.0f\n',sum(summary.iterations));
- ranked=sortrows(summary(summary.feasible,:),{'cost','caseId'});
+ ranked=sortrows(summary(summary.feasible==1,:),{'cost','caseId'});
  count=min(cfg.topResults,height(ranked));
  fprintf(fid,'\nTop %d feasible combinations (cost ascending)\n',count);
  for i=1:count

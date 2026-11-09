@@ -3,11 +3,15 @@ function record = optimize_basic_case(basic,k,caseId,p,tab,cfg)
 watch=tic; cfg.grfK=k; cfg.initial(cfg.parameterGroups.basic)=basic;
 seed=mod(cfg.seed+caseId-1,2^32); rng(seed,'twister');
 idx=cfg.freeIndices; lo=cfg.lower(idx); width=cfg.upper(idx)-lo;
-physical=cfg.lower+rand(cfg.startsPerK,numel(cfg.initial)).*(cfg.upper-cfg.lower);
-physical(:,cfg.parameterGroups.basic)=repmat(basic,cfg.startsPerK,1);
-physical=seed_horizontal_impulse(physical,cfg,true);
-zi=cfg.index.fz; physical(:,zi)=physical(:,zi)./sum(physical(:,zi),2);
-physical(1,:)=seed_horizontal_impulse(cfg.initial,cfg,false);
+if isfield(cfg,'adaptiveLocal') && cfg.adaptiveLocal
+ physical=basic_bounded_starts(cfg,basic);
+else
+ physical=cfg.lower+rand(cfg.startsPerK,numel(cfg.initial)).*(cfg.upper-cfg.lower);
+ physical(:,cfg.parameterGroups.basic)=repmat(basic,cfg.startsPerK,1);
+ physical=seed_horizontal_impulse(physical,cfg,true);
+ zi=cfg.index.fz; physical(:,zi)=physical(:,zi)./sum(physical(:,zi),2);
+ physical(1,:)=seed_horizontal_impulse(cfg.initial,cfg,false);
+end
 starts=(physical(:,idx)-lo)./width;
 queue=[]; if cfg.useParallel, queue=parallel.pool.PollableDataQueue; end
 lastX=[]; lastR=[]; bestX=[]; bestCost=Inf; bestViolation=Inf;
@@ -16,6 +20,8 @@ options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
  'MaxIterations',cfg.maxIterations,'MaxFunctionEvaluations',cfg.maxEvaluations,...
  'ConstraintTolerance',cfg.constraintTolerance,'StepTolerance',cfg.stepTolerance,...
  'FiniteDifferenceStepSize',1e-6,'OutputFcn',@finishStart);
+% A useful seed must survive even if the local solver terminates badly.
+r=evaluate(starts(1,:)); accept(pack(starts(1,:),r,0,0));
 problem=createOptimProblem('fmincon','x0',starts(1,:),'objective',@objective,...
  'nonlcon',@constraints,'lb',zeros(size(lo)),'ub',ones(size(lo)),'options',options);
 ms=MultiStart('Display','off','UseParallel',cfg.useParallel,'StartPointsToRun','all','MaxTime',Inf);

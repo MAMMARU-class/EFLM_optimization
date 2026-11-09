@@ -1,7 +1,9 @@
 # stage1_basic：基本パラメータのグリッドサーチ
 
-基本パラメータを格子値に固定し、各格子点・各零交差点 k で広域 MultiStart を実行する。
-時間・床反力パラメータは連続最適化する。狭域探索、密な軌道での修正、昇格・自動除外は実施しない。
+基本パラメータを格子値に固定し、各格子点・各零交差点 k で MultiStart を実行する。
+`run_stage1_basic` は現在、phase1の実行可能性確認 → phase2のk選択 → phase3の局所格子分割を実行する。
+段階の設定、親の探索幅の引き継ぎ、保存・再開方法は [段階探索の説明](../_docs/stage1_adaptive_grid_search.md) を参照。
+以下の従来設定表の grfXN/grfZN、k選択、startsPerK は単段入口 `main_stage1_basic` 用であり、段階入口では各phaseの設定を使う。
 
 ## 実行
 
@@ -17,11 +19,15 @@ MATLAB R2026b でプロジェクトを開き、プロジェクト直下の `run_
 options.vx0 = [2.2 0.4 5];
 options.thetaL = [deg2rad(50) deg2rad(10) 5];
 options.r0 = [0.30 0 1];
-options.restrictGrfK = true;
-options.grfKSelection = [7 8 9];
-options.startsPerK = 20;
+options.starts_phase1 = 20;
+options.starts_phase2 = 40;
+options.starts_phase3 = [60 80];
+options.pass_phase2 = 50;
+options.pass_phase3 = [25 10];
 options.topResults = 3;
 [summary, folder] = run_stage1_basic(options);
+% 中断後は完了済みケースを再計算せず再開
+[summary, folder] = run_stage1_basic(struct('resumeFolder', folder));
 ```
 
 Optimization Toolbox / Global Optimization Toolbox、並列実行時は Parallel Computing Toolbox が必要。
