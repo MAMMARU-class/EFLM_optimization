@@ -1,8 +1,10 @@
-function render_eflm_video(result,folder)
+function render_eflm_video(result,folder,filename)
 % Saved-result-only rendering. Old EFLM colors; no leg is shown in flight.
 r=result.final; p=result.parameters; cfg=result.settings; b=r.body;
 dest=fullfile(folder,'animation'); if ~isfolder(dest), mkdir(dest); end
-vid=VideoWriter(fullfile(dest,'motion.mp4'),'MPEG-4'); vid.FrameRate=cfg.fps;
+compactOutput=nargin>=3;
+if ~compactOutput, filename='motion.mp4'; end
+vid=VideoWriter(fullfile(dest,filename),'MPEG-4'); vid.FrameRate=cfg.fps;
 open(vid); cv=onCleanup(@()close(vid));
 % Keep a fixed world-space view across all cycles, with the frame aspect
 % matched to the trajectory bounds to avoid vertical letterboxing.
@@ -27,7 +29,7 @@ renderInfo=struct('direction','XDir reverse: positive simulation x displayed lef
  'playbackSpeed',playbackSpeed,'fps',cfg.fps,'createdAt',char(datetime('now')),...
  'camera','fixed','xlimits',xlimits,'ylimits',ylimits,...
  'frameSize',[frameWidth frameHeight]);
-save(fullfile(dest,'render_settings.mat'),'renderInfo');
+if ~compactOutput, save(fullfile(dest,'render_settings.mat'),'renderInfo'); end
 ax=axes(fig,'Units','normalized','OuterPosition',[0 0 1 1]); hold(ax,'on');
 plot(ax,xlimits,[0 0],'k-');
 link=plot(ax,NaN,NaN,'k-','LineWidth',3.9);
@@ -72,8 +74,8 @@ for tt=linspace(0,cfg.cycles*b.T,max(2,ceil(duration*cfg.fps)))
  set(body,'XData',x,'YData',z);
  title(ax,sprintf('%s | t = %.5f s | playback %.4fx',label,tt,playbackSpeed));
  drawnow; writeVideo(vid,getframe(fig));
- if tt==0, exportgraphics(ax,fullfile(dest,'stance_preview.png')); end
- if t>b.Ts && ~flightPreviewSaved
+ if ~compactOutput && tt==0, exportgraphics(ax,fullfile(dest,'stance_preview.png')); end
+ if ~compactOutput && t>b.Ts && ~flightPreviewSaved
   exportgraphics(ax,fullfile(dest,'flight_preview.png')); flightPreviewSaved=true;
  end
 end
