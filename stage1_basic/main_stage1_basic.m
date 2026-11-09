@@ -7,6 +7,7 @@ assert(exist('fmincon','file')==2 && exist('MultiStart','class')==8,...
  'Optimization Toolbox and Global Optimization Toolbox are required.');
 cfg=configure_stage1_basic(options); p=robot_parameters(); tab=basic_geometry_cache(p);
 prepare_optimization_pool(cfg);
+warningCleanup=suppress_basic_rank_warning(cfg); %#ok<NASGU>
 [v,t,r]=ndgrid(cfg.gridAxes{:}); grid=[v(:),t(:),r(:)];
 total=size(grid,1)*numel(cfg.grfKValues);
 folder=fullfile(root,'_logs','stage1_basic',char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
