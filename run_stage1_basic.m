@@ -6,9 +6,9 @@ addpath(genpath(fullfile(root,'common')),fullfile(root,'stage1_basic'));
 if nargin<1, overrides=struct; end
     options=struct;
     % basic options for grid search
-    options.vx0=[2.4 0.5 7];                         % [m/s], center +/- width, odd count
-    options.thetaL=[deg2rad(45) deg2rad(7) 7];      % [rad], convert center/width only
-    options.r0=[0.28 0.04 7];                         % [m], center +/- width, odd count
+    options.vx0=[2.05 0.45 7];                       % [m/s], 1.6 to 2.5
+    options.thetaL=[deg2rad(42.5) deg2rad(7.5) 7];  % [rad], 35 to 50 deg
+    options.r0=[0.28 0.04 7];                        % [m], 0.24 to 0.32
     % time option
     options.stanceScale=[0.6 1.5 1];                    % continuous [lower upper initial]
     options.duty=[0.35 0.65 0.5];
@@ -18,14 +18,14 @@ if nargin<1, overrides=struct; end
     options.grfXBetaStart=[-0.3 0 0];
     options.grfXBetaEnd=[-0.3 0 0];
     options.restrictGrfK=true;                       % pre_defined range
-    options.grfKSelection=6;             % used only if restrictGrfK=true
+    options.grfKSelection=[5 6];                    % used only if restrictGrfK=true
     % GRF z
     options.grfZN=7;
     options.grfZBetaStart=[0 0.5 0];
     options.grfZBetaEnd=[-0.5 0 0];
 
     % search and save settings
-    options.startsPerK=300;                        % per BASIC GRID POINT and k
+    options.startsPerK=200;                        % per BASIC GRID POINT and k
     options.nodes=121;                              % broad evaluation only
     options.topResults=3;                           % global feasible top N: PNG and MP4
     options.useParallel=true;
