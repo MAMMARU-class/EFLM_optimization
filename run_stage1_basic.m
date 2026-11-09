@@ -26,10 +26,10 @@ if nargin<1, overrides=struct; end
     options.starts_phase1=150;
     options.n_phase1=7; options.k_phase1=4; options.m_phase1=5;
     % phase 2
-    options.starts_phase2=150; options.pass_phase2=60;
+    options.starts_phase2=150; options.pass_phase2=50;
     options.n_phase2=9; options.m_phase2=6;
     % phase 3
-    options.starts_phase3=[150 200];
+    options.starts_phase3=[300 300];
     options.pass_phase3=[50 10];
     options.n_phase3=[15 15];
     options.m_phase3=[9 9];
