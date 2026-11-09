@@ -14,6 +14,7 @@ for rank=1:count
  result=struct('final',r,'parameters',p,'settings',cfg,'bestVariables',record.variables,...
   'valid',record.feasible,'status',record.status);
  fprintf('Exporting rank %d/%d (case %d): PNG, video=%d\n',rank,count,id,cfg.video);
+ write_basic_rank_report(result,folder,rank,id);
  plot_basic_result(result,fullfile(folder,'plots',sprintf('no%d_parameters.png',rank)));
  if cfg.video, render_eflm_video(result,folder,sprintf('no%d_parameters.mp4',rank)); end
 end

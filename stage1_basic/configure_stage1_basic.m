@@ -1,18 +1,22 @@
 function cfg = configure_stage1_basic(options)
 % Fixed basic coordinates are excluded from the local optimization vector.
 names={'vx0','thetaL','r0'}; axes=cell(1,3); specs=zeros(3,3);
-defaults={[1 3.5 10],[deg2rad(40) deg2rad(65) 10],[.26 .33 10]};
+defaults={[2.2 .4 5],[deg2rad(50) deg2rad(10) 5],[.3 .05 5]};
 for i=1:3
  name=names{i}; spec=defaults{i};
  if isfield(options,name), spec=options.(name); options=rmfield(options,name); end
  validateattributes(spec,{'numeric'},{'real','finite','size',[1 3]});
  validateattributes(spec(3),{'numeric'},{'integer','positive'});
- if spec(1)>spec(2) || (spec(3)>1 && spec(1)==spec(2)) || (spec(3)==1 && spec(1)~=spec(2))
-  error('EFLM:GridBounds','%s: use [lower upper count], or [value value 1] for a fixed value.',name);
+ if mod(spec(3),2)==0
+  error('EFLM:GridCount','%s: grid count must be odd so the center is included.',name);
  end
- axes{i}=linspace(spec(1),spec(2),spec(3)); specs(i,:)=spec;
+ if spec(2)<0 || (spec(3)>1 && spec(2)==0) || (spec(3)==1 && spec(2)~=0)
+  error('EFLM:GridBounds','%s: use positive width for multiple points, or [center 0 1] for one point.',name);
+ end
+ axes{i}=linspace(spec(1)-spec(2),spec(1)+spec(2),spec(3)); specs(i,:)=spec;
 end
-if specs(1,1)<=0 || specs(3,1)<=0 || specs(2,1)<=0 || specs(2,2)>=pi/2
+if specs(1,1)-specs(1,2)<=0 || specs(3,1)-specs(3,2)<=0 || ...
+   specs(2,1)-specs(2,2)<=0 || specs(2,1)+specs(2,2)>=pi/2
  error('EFLM:GridBounds','Require vx0>0, r0>0, and 0<thetaL<pi/2.');
 end
 topResults=3;
@@ -24,7 +28,9 @@ end
 cfg=optimization_settings();
 cfg=apply_stage1_overrides(cfg,options);
 % These three bounds only describe grid coverage; they never enter fmincon.
-cfg.lower(1:3)=specs(:,1)'; cfg.upper(1:3)=specs(:,2)'; cfg.initial(1:3)=specs(:,1)';
+cfg.lower(1:3)=(specs(:,1)-specs(:,2))';
+cfg.upper(1:3)=(specs(:,1)+specs(:,2))';
+cfg.initial(1:3)=specs(:,1)';
 cfg=configure_impulse_grf(cfg);
 cfg.gridAxes=axes; cfg.gridSpecs=specs; cfg.topResults=topResults;
 cfg.model='stage1_basic'; cfg.simulationFunction='sim_cycle_stage1_basic';

@@ -51,6 +51,8 @@ try
  meta.status='optimization_completed'; meta.elapsed=toc(watch);
  write_basic_report(folder,summary,cfg,meta);
  export_basic_ranked(folder,summary,cfg,p,tab);
+ fprintf('Generating grid search result maps...\n');
+ plot_basic_grid_search_results(folder,fullfile(folder,'grid_search_result'));
  meta.status='completed'; meta.elapsed=toc(watch);
  save(fullfile(folder,'settings.mat'),'meta','-append');
  write_basic_report(folder,summary,cfg,meta);

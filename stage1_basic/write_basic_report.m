@@ -3,10 +3,11 @@ fid=fopen(fullfile(folder,'report.txt'),'w','n','UTF-8');
 if fid<0, error('EFLM:ReportOpen','Cannot write report.txt'); end
 cleanup=onCleanup(@()fclose(fid)); %#ok<NASGU>
 fprintf(fid,'Stage1 basic grid search\n========================\n');
-fprintf(fid,'Status: %s\nStarted: %s\nMATLAB: %s\nGit: %s\n',meta.status,meta.startedAt,meta.matlabVersion,meta.gitCommit);
-fprintf(fid,'Completed combinations: %d / %d\nElapsed [s]: %.6f\n',height(summary),meta.totalCases,meta.elapsed);
+fprintf(fid,'Status: %s\nStarted: %s\nExecution time [s]: %.6f\nMATLAB: %s\nGit: %s\n',...
+ meta.status,meta.startedAt,meta.elapsed,meta.matlabVersion,meta.gitCommit);
+fprintf(fid,'Completed combinations: %d / %d\n',height(summary),meta.totalCases);
 fprintf(fid,'Route: basic grid -> each k -> broad MultiStart only\n');
-fprintf(fid,'Grid [lower upper count]\n');
+fprintf(fid,'Grid [center half-width count]\n');
 names={'vx0 [m/s]','thetaL [rad]','r0 [m]'};
 for i=1:3, fprintf(fid,'  %-14s: %.12g %.12g %d\n',names{i},cfg.gridSpecs(i,:)); end
 fprintf(fid,'k: %s\nStarts per grid point and k: %d\nNodes: %d\n',mat2str(cfg.grfKValues),cfg.startsPerK,cfg.nodes);
@@ -24,8 +25,9 @@ if ~isempty(summary)
  fprintf(fid,'\nTop %d feasible combinations (cost ascending)\n',count);
  for i=1:count
   a=ranked(i,:);
-  fprintf(fid,'no%d: case=%d grid=%d k=%d cost=%.12g vx0=%.12g thetaL=%.12g r0=%.12g\n',...
-   i,a.caseId,a.gridId,a.k,a.cost,a.vx0,a.thetaL,a.r0);
+  fprintf(fid,['no%d: case=%d grid=%d k=%d cost=%.12g meanSpeed=%.12g CoT=%.12g ' ...
+   'vx0=%.12g thetaL=%.12g r0=%.12g\n'],...
+   i,a.caseId,a.gridId,a.k,a.cost,a.speed,a.CoT,a.vx0,a.thetaL,a.r0);
  end
 end
 if isfield(meta,'error'), fprintf(fid,'\nError: %s\n',meta.error); end
