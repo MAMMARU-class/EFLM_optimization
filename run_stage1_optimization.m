@@ -14,13 +14,12 @@ if useDefaults
     overrides.grfZBetaEnd = [-0.5, 0, 0];          % dimensionless [lower, upper, initial]
 
     % 
-    overrides.restrictGrfPairs = true;           % true: use only the [k,j] rows below
+    overrides.restrictGrfPairs = false;            % search only the selected [k,j] rows
     overrides.grfPairSelection = [ ...
         7, 4; 7, 5; 7, 6; 7, 8; 7, 9; 7, 10; ...
         8, 5; 8, 6; 8, 7; 8, 9; 8, 10; 8, 11; ...
         9, 6; 9, 7; 9, 8; 9, 10; 9, 11; 9, 12; ...
         10, 7; 10, 8; 10, 9; 10, 11; 10, 12; 10, 13; ...
-        11, 8; 11, 9; 11, 10; 11, 12; 11, 13; 11, 14; ...
     ];
 
     % 
@@ -32,16 +31,16 @@ if useDefaults
     overrides.stanceScale = [0.5, 2.0, 1.0];       % [-]
 
     % 
-    startsPerPair = 1000;
+    startsPerPair = 2000;
     if overrides.restrictGrfPairs
         pairCount = size(unique(overrides.grfPairSelection,'rows'),1);
     else
         pairCount = (overrides.grfN-4)*(overrides.grfN-3);
     end
     overrides.starts = startsPerPair * pairCount;
-    overrides.localStarts = 500;
+    overrides.localStarts = 1000;
     overrides.useParallel = true;
-    overrides.parallelWorkers = 16;
+    overrides.parallelWorkers = 20;
 
     % 
     % Minimize weighted squared relative errors from these targets.

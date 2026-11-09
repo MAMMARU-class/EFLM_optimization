@@ -134,7 +134,6 @@ if isfield(b,'horizontalGRF')
  fprintf(fid, '  Impulse [N s]  : %.12g\n',a(1)*h.impulse);
  fprintf(fid, '  Integral(f)/Ts : %.12g\n',h.normalizedImpulse);
 end
-fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 if isfield(b,'verticalGRF')
  h=b.verticalGRF;
  fprintf(fid,'Vertical GRF control points\n');
@@ -142,6 +141,7 @@ if isfield(b,'verticalGRF')
  fprintf(fid,'  Beta [-]       : %s\n',rowText(h.beta));
  fprintf(fid,'Initial vertical velocity [m/s]: %.12g\n',b.vz0);
 end
+fprintf(fid, 'Mean speed [m/s]     : %.12g\n', b.speed);
 fprintf(fid, 'CoT                  : %.12g\n', r.cot);
 fprintf(fid, 'Absolute work [J]    : %.12g\n', r.energy);
 fprintf(fid, 'Distance [m]         : %.12g\n', b.distance);
