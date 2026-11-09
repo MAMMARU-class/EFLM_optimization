@@ -53,6 +53,8 @@ try
  export_basic_ranked(folder,summary,cfg,p,tab);
  fprintf('Generating grid search result maps...\n');
  plot_basic_grid_search_results(folder,fullfile(folder,'grid_search_result'));
+ fprintf('Analyzing horizontal and vertical GRF shapes with PCA...\n');
+ analyze_basic_grf_pca(folder);
  meta.status='completed'; meta.elapsed=toc(watch);
  save(fullfile(folder,'settings.mat'),'meta','-append');
  write_basic_report(folder,summary,cfg,meta);

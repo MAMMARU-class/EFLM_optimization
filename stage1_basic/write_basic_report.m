@@ -31,4 +31,8 @@ if ~isempty(summary)
  end
 end
 if isfield(meta,'error'), fprintf(fid,'\nError: %s\n',meta.error); end
+pcaFile=fullfile(folder,'grid_search_result','grf_pca.mat');
+if isfile(pcaFile)
+ item=load(pcaFile,'analysis'); write_basic_pca_report(fid,item.analysis);
+end
 end

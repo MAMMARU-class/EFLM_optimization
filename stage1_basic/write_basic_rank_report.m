@@ -49,6 +49,10 @@ idx=cfg.freeIndices;
 scaled=(a(idx)-cfg.lower(idx))./(cfg.upper(idx)-cfg.lower(idx));
 fprintf(fid,'Boundary distances (free variables): %s\n',rowText(min(scaled,1-scaled)));
 fprintf(fid,'Periodicity residual : %s\n',rowText(b.periodic));
+pcaFile=fullfile(folder,'grid_search_result','grf_pca.mat');
+if isfile(pcaFile)
+ item=load(pcaFile,'analysis'); write_basic_pca_report(fid,item.analysis,caseId);
+end
 end
 
 function value=rowText(x)
