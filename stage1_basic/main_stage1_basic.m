@@ -25,10 +25,12 @@ fprintf('stage1_basic: %d basic grid points x %d k values x %d starts = %.0f loc
  size(grid,1),numel(cfg.grfKValues),cfg.startsPerK,total*cfg.startsPerK);
 write_basic_report(folder,summary,cfg,meta);
 try
- for gridId=1:size(grid,1)
+ gridCount=size(grid,1);
+ for gridId=1:gridCount
+  fprintf('\n[%d/%d] vx0=%.5g, thetaL=%.5g rad, r0=%.5g\n',...
+   gridId,gridCount,grid(gridId,:));
   for k=cfg.grfKValues
    caseId=caseId+1;
-   fprintf('[%d/%d] vx0=%.5g, thetaL=%.5g rad, r0=%.5g, k=%d\n',caseId,total,grid(gridId,:),k);
    record=optimize_basic_case(grid(gridId,:),k,caseId,p,tab,cfg);
    record.gridId=gridId;
    % Save only each completed combination's final candidate and outcome.
@@ -40,8 +42,8 @@ try
     writetable(row,fullfile(folder,'summary.csv'),'WriteMode','append','WriteVariableNames',false);
    end
    meta.elapsed=toc(watch); write_basic_report(folder,summary,cfg,meta);
-   fprintf('  %s | cost=%.6g | violation=%.3g | %.1f s (saved)\n',...
-    record.status,record.cost,record.maxViolation,record.elapsed);
+   fprintf('k = %d: v_ave = %.5g, CoT = %.5g, cost = %.5g\n',...
+    k,record.speed,record.cot,record.cost);
   end
  end
  meta.status='optimization_completed'; meta.elapsed=toc(watch);
