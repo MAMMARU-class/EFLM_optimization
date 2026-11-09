@@ -2,8 +2,8 @@ function report = validate_stage1_point_mass()
 % Independent checks against Cartesian closed-link geometry and virtual work.
 root=fileparts(fileparts(mfilename('fullpath')));
 addpath(genpath(fullfile(root,'common')),genpath(fullfile(root,'stage1_point_mass')));
-p=robot_parameters(); cfg=configure_horizontal_grf(optimization_settings()); tab=build_exact_geometry_cache(p);
-cfg.initial(7:9)=[.5 .75 .75]; % Balanced shape for n=7, k=4, j=2.
+addpath(fullfile(root,'_test'));
+[cfg,p,tab]=impulse_grf_validation_fixture();
 r=sim_cycle_stage1_point_mass(cfg.initial,p,tab,cfg,12001);
 h=r.angles(:,1); k=r.angles(:,2); s=r.s; e=1e-20;
 G=-[r.body.Fx,r.body.Fz]; V=-[r.body.vx,r.body.vz];
@@ -20,6 +20,9 @@ assert(toeError<1e-10 && velocityError<1e-8);
 assert(max(abs(r.body.periodic))<1e-10);
 % Time finite differences independently check the implicit velocity solve.
 mask=s>1e-4 & r.body.t>.01*r.body.Ts & r.body.t<.99*r.body.Ts;
+% The centered stencil must stay in one smooth Hermite segment.
+knots=[r.body.horizontalGRF.knots;r.body.verticalGRF.knots];
+mask=mask & min(abs(r.body.t-knots'),[],2)>2*max(diff(r.body.t));
 numeric=[gradient(h,r.body.t),gradient(k,r.body.t),gradient(r.angles(:,3),r.body.t)];
 rateError=max(abs(numeric(mask,:)-r.angularVelocity(mask,:)),[],'all');
 assert(rateError<1e-3,'Exact implicit rates disagree with time differences');

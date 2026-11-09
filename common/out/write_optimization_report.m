@@ -3,6 +3,10 @@ function write_optimization_report(result, folder, execution, cfg, failure)
 if nargin < 5
     failure = [];
 end
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
+ write_impulse_optimization_report(result,folder,execution,cfg,failure);
+ return
+end
 reportPath = fullfile(folder, 'report.txt');
 fid = fopen(reportPath, 'w', 'n', 'UTF-8');
 if fid < 0

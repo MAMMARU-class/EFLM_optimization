@@ -1,13 +1,14 @@
 function cfg = apply_stage1_overrides(cfg,overrides)
 % Apply named [lower, upper, initial] decision-variable settings.
-parameterNames={'AmpH','thetaL','v','Duty','r0','stanceScale'};
+parameterNames={'vx0','thetaL','r0','stanceScale','duty','Ix'};
 
-legacyNames={'lower','upper','initial'};
+legacyNames={'lower','upper','initial','AmpH','v','Duty','grfN',...
+ 'grfBetaEndpoint','restrictGrfPairs','grfPairSelection','starts'};
 for i=1:numel(legacyNames)
  if isfield(overrides,legacyNames{i})
   error('EFLM:LegacyParameterSetting',...
-   ['Use overrides.<parameter> = [lower, upper, initial]. ' ...
-    'The lower/upper/initial vector interface has been removed.']);
+   ['Use vx0, thetaL, r0, stanceScale, duty, Ix and grfXN; ' ...
+    'use startsPerK and restrictGrfK/grfKSelection. Obsolete setting: %s'],legacyNames{i});
  end
 end
 

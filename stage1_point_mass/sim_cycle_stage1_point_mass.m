@@ -75,6 +75,9 @@ shapeConstraints=[b.horizontalGRF.shapeConstraints;b.verticalGRF.shapeConstraint
 initialVelocityConstraint=b.vz0/(p.g*b.T);
 c=[channels(:);shapeConstraints;-b.distance;durationConstraints;initialVelocityConstraint];
 ceq=[b.horizontalGRF.normalizedImpulse;b.verticalGRF.normalizationResidual];
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
+ ceq=[b.horizontalGRF.S0;b.horizontalGRF.normalizationResidual;b.verticalGRF.normalizationResidual];
+end
 [springForce,springStiffness,springEnergy]=spring_response(s,p);
 r=struct('a',a,'body',b,'s',s,'sd',sd,'l',l,'ld',ref.Rk.*kd,'q',q,'qd',qd,...
  'angles',[h,k,qa],'angularVelocity',[dq,qad],'tau',tau,'rpm',rpm,...

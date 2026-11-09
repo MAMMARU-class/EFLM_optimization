@@ -1,5 +1,9 @@
 function b = prescribed_motion_stage1(a,p,n,cfg)
 % Exact integration of m*xdd=Fx, m*zdd=Fz-m*g; toe fixed at world origin.
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
+ b=prescribed_impulse_motion_stage1(a,p,n,cfg);
+ return
+end
 A=a(1); alpha=a(2); v=a(3); D=a(4);
 r0=a(5);
 % General displacement identity, also valid before the impulse constraint holds.

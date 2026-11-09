@@ -20,17 +20,17 @@ end
 addpath(genpath(fullfile(root,'common')));
 p=robot_parameters(); cfg=optimization_settings();
 cfg=apply_stage1_overrides(cfg,overrides);
-cfg=configure_horizontal_grf(cfg);
+cfg=configure_impulse_grf(cfg);
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
-cfg.method='scaled_mean_velocity_hermite';
+cfg.method='scaled_mean_velocity_absolute_impulse_hermite';
 cfg.simulationFunction='sim_cycle_stage1_point_mass';
 cfg.cacheFunction='build_exact_geometry_cache';
 validateattributes(cfg.lower,{'numeric'},{'row','real','finite'});
 validateattributes(cfg.upper,{'numeric'},{'row','numel',numel(cfg.lower),'real','finite'});
 validateattributes(cfg.initial,{'numeric'},{'row','numel',numel(cfg.lower),'real','finite'});
-validateattributes(cfg.lower(5:6),{'numeric'},{'positive'});
+validateattributes(cfg.lower([cfg.index.r0 cfg.index.stanceScale]),{'numeric'},{'positive'});
 validateattributes(cfg.w1,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.w2,{'numeric'},{'scalar','real','finite','nonnegative'});
 validateattributes(cfg.targetSpeed,{'numeric'},{'scalar','real','finite','positive'});
@@ -64,7 +64,11 @@ save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
 try
  tab=feval(cfg.cacheFunction,p);
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
- result=optimize_two_stage(p,tab,cfg);
+ if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
+  result=optimize_impulse_two_stage(p,tab,cfg);
+ else
+  result=optimize_two_stage(p,tab,cfg);
+ end
  execution.status='completed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  execution.totalElapsed=toc(runTimer); result.gitCommit=execution.gitCommit;
  saveSteps=3+double(cfg.video);
