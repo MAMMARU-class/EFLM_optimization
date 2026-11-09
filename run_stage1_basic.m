@@ -6,9 +6,9 @@ addpath(genpath(fullfile(root,'common')),fullfile(root,'stage1_basic'));
 if nargin<1, overrides=struct; end
     options=struct;
     % basic options for grid search
-    options.vx0=[2.05 0.45 7];                       % [m/s], 1.6 to 2.5
-    options.thetaL=[deg2rad(42.5) deg2rad(7.5) 7];  % [rad], 35 to 50 deg
-    options.r0=[0.28 0.04 7];                        % [m], 0.24 to 0.32
+    options.vx0=[2.05 0.45 9];                       % [m/s], 1.6 to 2.5
+    options.thetaL=[deg2rad(42.5) deg2rad(7.5) 9];  % [rad], 35 to 50 deg
+    options.r0=[0.28 0.04 9];                        % [m], 0.24 to 0.32
     % time option
     options.stanceScale=[0.6 1.5 1];                    % continuous [lower upper initial]
     options.duty=[0.35 0.65 0.5];
@@ -22,12 +22,18 @@ if nargin<1, overrides=struct; end
 
     % search and save settings
     % Adaptive phases. Counts are MultiStart starts per basic tuple and k.
-    options.starts_phase1=50; options.n_phase1=7; options.k_phase1=4; options.m_phase1=5;
-    options.starts_phase2=100; options.pass_phase2=50;
+    % phase 1
+    options.starts_phase1=150;
+    options.n_phase1=7; options.k_phase1=4; options.m_phase1=5;
+    % phase 2
+    options.starts_phase2=150; options.pass_phase2=60;
     options.n_phase2=9; options.m_phase2=6;
-    options.starts_phase3=[200 200];
-    options.pass_phase3=[25 10];
-    options.n_phase3=[11 13]; options.m_phase3=[7 9];
+    % phase 3
+    options.starts_phase3=[150 200];
+    options.pass_phase3=[50 10];
+    options.n_phase3=[15 15];
+    options.m_phase3=[9 9];
+    % phase transition and output controls
     options.kRadiusFraction=0.10; % normalized crossing position, +/-10% of stance
     options.refinementRadius=0.20; % +/-20% of parent's search-box width
     options.resumeFolder='';       % existing adaptive run; saved settings are authoritative

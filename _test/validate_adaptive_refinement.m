@@ -25,6 +25,10 @@ assert(min(rows.cost(rows.feasible==1))<=min(old.cost(old.feasible==1))+1e-12);
 for i=1:numel(new)
  assert(all(abs(new{i}.spacing-s.spacing/3)<1e-12));
  assert(all(new{i}.cfg.initial>=new{i}.cfg.lower-1e-12 & new{i}.cfg.initial<=new{i}.cfg.upper+1e-12));
+ assert(~new{i}.cfg.adaptiveLocal);
+ free=new{i}.cfg.freeIndices;
+ assert(isequal(new{i}.cfg.lower(free),p.cfg.lower(free)) && ...
+  isequal(new{i}.cfg.upper(free),p.cfg.upper(free)));
 end
 % Real saved parents with different n must reconstruct independently.
 phase=fullfile(source,'phase3.2'); data=load(fullfile(phase,'settings.mat'));

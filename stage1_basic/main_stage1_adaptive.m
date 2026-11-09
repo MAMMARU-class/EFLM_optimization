@@ -205,7 +205,14 @@ for group=selected
    origin=[];
    if phase>2
     [~,near]=min(abs(rho-(k-1)/(cfg.grfXN-1))); seed=previous{top(near)};
-    caseCfg=basic_refinement_config(cfg,seed,k,children(child,:),plan.refinementRadius);
+    if phase==3
+     % Phase2 -> phase3.1: keep the selected basic/k region, but reset all
+     % timing and GRF bounds. The resampled parent is only the first seed.
+     caseCfg=basic_global_seed_config(cfg,seed,k,children(child,:));
+    else
+     % Later refinements inherit a local box around the preceding solution.
+     caseCfg=basic_refinement_config(cfg,seed,k,children(child,:),plan.refinementRadius);
+    end
     origin=struct('phase',seed.originPhase,'caseId',seed.originCase);
    end
    task=newTask(children(child,:),k,caseCfg,childSpacing,0,[]); task.parentOrigin=origin;
