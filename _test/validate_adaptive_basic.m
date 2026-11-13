@@ -8,7 +8,7 @@ o=struct('vx0',[2.2 0 1],'thetaL',[deg2rad(47.5) 0 1],'r0',[.30 0 1],...
  'maxIterations',50,'maxEvaluations',800,'stopAfterPhase',1);
 [~,folder]=run_stage1_basic(o);
 s=load(fullfile(folder,'phase1','settings.mat'));
-assert(s.cfg.lower(4)==1 && s.cfg.upper(4)==1 && ~ismember(4,s.cfg.freeIndices));
+assert(s.cfg.lower(4)==.6 && s.cfg.upper(4)==1.5 && ismember(4,s.cfg.freeIndices));
 file=fullfile(folder,'phase1','cases','000001.mat'); before=dir(file);
 [~,again]=run_stage1_basic(struct('resumeFolder',folder,'generatePhaseOutputs',false));
 assert(strcmp(folder,again)); after=dir(file); assert(before.datenum==after.datenum);

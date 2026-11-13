@@ -8,6 +8,7 @@ scale=[1 180/pi 1]; pairs=[1 2 3;1 3 2;2 3 1];
 axesValues=cell(1,3);
 for p=1:3, axesValues{p}=unique(rows.(params{p}))'; end
 directions={'horizontal','vertical'}; notation={'x','z'};
+plot_basic_pca_rgb_legend(output);
 for d=1:2
  name=directions{d}; m=a.(name);
  if ~any(m.valid), continue; end

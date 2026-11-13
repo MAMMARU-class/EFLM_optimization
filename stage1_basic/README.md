@@ -89,7 +89,8 @@ thetaLは中心値と探索幅のみ`deg2rad`で変換し、点数は変換し�
 | report.txt | 開始日時・実行時間、設定、完了件数、集計、上位ケースID |
 | report_no1.txt など | 出力対象の各順位について、最終変数・床反力制御点・運動指標・制約違反を記載 |
 | grid_search_result/ | 基本パラメータとコスト・速度・CoTの関係を示す15枚のカラーマップ。実行可能解がない格子は黒 |
-| grid_search_result/pca_*.png | 水平・鉛直を別々に解析したPCAの主成分形状、符号付きスコアのRGB図、累積説明率の図（計14枚） |
+| grid_search_result/pca_*.png | 水平・鉛直を別々に解析したPCAの主成分形状、符号付きスコアのRGB図、累積説明率の図 |
+| grid_search_result/pca_00_rgb_legend.png | 水平・鉛直に共通するRGB立方体の凡例。3軸はPC1・PC2・PC3の符号付き正規化スコア |
 | grid_search_result/grf_pca.mat / grf_pca_scores.csv / grf_pca_waveforms.csv | 正規化波形、PCA係数、スコア、寄与率、RGB値、平均波形±各PCの1標準偏差 |
 | source/ | 再構成用のソースを実行全体で一度だけ保存 |
 | plots/no1_parameters.png など | 上位の立脚期グラフ |
@@ -101,9 +102,20 @@ thetaLは中心値と探索幅のみ`deg2rad`で変換し、点数は変換し�
 FIG、プレビュー画像、render_settings、各ケースの時系列CSV、MultiStartオブジェクトや反復履歴は保存しない。
 
 ケースが完了するたびにMATと一覧を保存する。中断時にも完了済みケースは残る。
-中断されたケースの途中経過と、自動再開機能は今回の対象に含まない。
+中断されたケースの途中経過は保存しない。段階探索は `resumeFolder` を指定すると、保存済みケースを飛ばして残りから再開する。
 
 ## 後から軌道を生成する
+
+段階探索を途中で停止した場合も、保存済みのケースだけでレポート・順位別の図と動画・カラーマップ・PCAを生成できる。
+この操作は最適化を再開せず、チェックポイントの完了状態も変更しない。
+
+```matlab
+phaseFolder = fullfile(folder, 'phase3.1');
+summary = export_partial_stage1_phase(phaseFolder);
+```
+
+`report.txt` の状態は `partial_results_exported`、完了件数は保存済みケース数となる。
+未完了ケースを後から計算してphaseを完了した場合、通常の出力処理で結果を更新できる。
 
 ```matlab
 result = reconstruct_basic_case(folder, caseId);

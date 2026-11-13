@@ -57,10 +57,6 @@ for phase=1:min(2+numel(plan.pass_phase3),control.stopAfterPhase)
   end
  else
   cfg=configure_stage1_basic(phaseOptions(base,plan,phase));
-  if phase==1
-   cfg.initial(4)=1; cfg.lower(4)=1; cfg.upper(4)=1;
-   cfg.freeIndices=setdiff(cfg.freeIndices,4);
-  end
   tasks=makeTasks(phase,grid,spacing,records,cfg,plan);
   if ~isfolder(destination), mkdir(destination); end
   mkdir(fullfile(destination,'cases'));

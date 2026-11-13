@@ -8,6 +8,7 @@ end
 summaryFile=fullfile(sourceFolder,'summary.csv');
 if ~isfile(summaryFile), error('EFLM:MissingSummary','Missing %s',summaryFile); end
 rows=readtable(summaryFile);
+[layers,baseRows]=basic_map_layers(sourceFolder,rows);
 required={'vx0','thetaL','r0','feasible','cost','speed','CoT'};
 if ~all(ismember(required,rows.Properties.VariableNames))
  error('EFLM:SummaryColumns','Missing required columns in %s',summaryFile);
@@ -23,25 +24,25 @@ metricNames={'J_{\mathrm{cost}}','\bar v_x\;[\mathrm{m/s}]','\mathrm{CoT}'};
 criterion={'minimum','maximum','minimum'};
 extremum={'min','max','min'};
 axisValues=cell(1,3);
-for p=1:3, axisValues{p}=unique(rows.(params{p}))'; end
+for p=1:3, axisValues{p}=unique(baseRows.(params{p}))'; end
 if any(cellfun(@isempty,axisValues)), error('EFLM:EmptyGrid','No basic grid rows found.'); end
 if nargin<2 || isempty(outputFolder)
  stamp=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyyMMdd_HHmmss_SSS'));
  outputFolder=fullfile(root,'_logs','test',stamp);
 end
-mkdir(outputFolder);
+if ~isfolder(outputFolder), mkdir(outputFolder); end
 
 for m=1:3
- metricData=rows.(metrics{m});
- valueLimits=limitsFor(metricData(rows.feasible==1 & isfinite(metricData)));
+ allRows=vertcat(layers.rows); metricData=allRows.(metrics{m});
+ valueLimits=limitsFor(metricData(allRows.feasible==1 & isfinite(metricData)));
  % Three pairwise projections; select the independently best third parameter at each cell.
  f=newFigure(2400,750); cleanup=onCleanup(@()close(f));
  layout=tiledlayout(f,1,3,'TileSpacing','compact','Padding','compact');
  for p=1:3
   pair=pairs(p,:);
-  [values,~]=reducePair(rows,params,axisValues,pair,metrics{m},extremum{m},[]);
   ax=nexttile(layout);
-  paintMap(ax,axisValues(pair(1:2)),scale(pair(1:2)),symbols(pair(1:2)),values,valueLimits);
+  paint_basic_adaptive_map(ax,layers,params,axisValues,pair,metrics{m},extremum{m},[],false,...
+   scale,symbols,valueLimits);
  end
  sgtitle(layout,sprintf('$\\mathrm{%s}\\; %s$',criterion{m},metricNames{m}),...
   'Interpreter','latex','FontSize',28);
@@ -54,10 +55,9 @@ for m=1:3
  layout=tiledlayout(f,1,3,'TileSpacing','compact','Padding','compact');
  for p=1:3
   pair=pairs(p,:); third=pair(3);
-  [~,chosen]=reducePair(rows,params,axisValues,pair,metrics{m},extremum{m},[]);
   ax=nexttile(layout);
-  paintMap(ax,axisValues(pair(1:2)),scale(pair(1:2)),symbols(pair(1:2)),...
-   chosen*scale(third),limitsFor(axisValues{third}*scale(third)));
+  paint_basic_adaptive_map(ax,layers,params,axisValues,pair,metrics{m},extremum{m},[],true,...
+   scale,symbols,limitsFor(axisValues{third}*scale(third)));
   cb=colorbar(ax); cb.TickLabelInterpreter='latex'; cb.FontSize=22;
   cb.Label.String=symbols{third}; cb.Label.Interpreter='latex'; cb.Label.FontSize=24;
  end
@@ -74,9 +74,9 @@ for m=1:3
   f=newFigure(max(2400,560*numel(subset)+260),750); cleanup=onCleanup(@()close(f));
   layout=tiledlayout(f,1,numel(subset),'TileSpacing','compact','Padding','compact');
   for s=subset
-   [values,~]=reducePair(rows,params,axisValues,pair,metrics{m},extremum{m},fixed(s));
    ax=nexttile(layout);
-   paintMap(ax,axisValues(pair(1:2)),scale(pair(1:2)),symbols(pair(1:2)),values,valueLimits);
+   paint_basic_adaptive_map(ax,layers,params,axisValues,pair,metrics{m},extremum{m},fixed(s),false,...
+    scale,symbols,valueLimits);
    title(ax,sprintf('$%s=%.4g\\;[%s]$',short{third},fixed(s)*scale(third),units{third}),...
     'Interpreter','latex','FontSize',23);
   end
@@ -107,40 +107,9 @@ end
 error('EFLM:NoBasicRun','No completed stage1_basic run found under %s',logRoot);
 end
 
-function [best,chosen]=reducePair(rows,params,axes,pair,metric,extremum,fixedValue)
-x=axes{pair(1)}; y=axes{pair(2)};
-best=nan(numel(y),numel(x)); chosen=best;
-valid=rows.feasible==1 & isfinite(rows.(metric));
-if ~isempty(fixedValue), valid=valid & rows.(params{pair(3)})==fixedValue; end
-for iy=1:numel(y)
- for ix=1:numel(x)
-  matches=find(valid & rows.(params{pair(1)})==x(ix) & rows.(params{pair(2)})==y(iy));
-  if isempty(matches), continue; end
-  data=rows.(metric);
-  if strcmp(extremum,'max')
-   [best(iy,ix),loc]=max(data(matches));
-  else
-   [best(iy,ix),loc]=min(data(matches));
-  end
-  thirdValues=rows.(params{pair(3)});
-  chosen(iy,ix)=thirdValues(matches(loc));
- end
-end
-end
-
 function f=newFigure(width,height)
 f=figure('Visible','off','Color','white','Units','pixels',...
  'Position',[100 100 width height]);
-end
-
-function paintMap(ax,axes,scale,symbols,values,limits)
-x=axes{1}*scale(1); y=axes{2}*scale(2);
-basic_grid_image(ax,x,y,values,double(isfinite(values)));
-ax.Color=[0 0 0]; ax.YDir='normal'; colormap(ax,parula(256)); clim(ax,limits);
-ax.XTick=x; ax.YTick=y;
-xlabel(ax,symbols{1},'Interpreter','latex'); ylabel(ax,symbols{2},'Interpreter','latex');
-ax.FontSize=25; ax.LineWidth=1.5; ax.TickLabelInterpreter='latex';
-ax.Box='on'; ax.Layer='top';
 end
 
 function addColorbar(ax,label)
