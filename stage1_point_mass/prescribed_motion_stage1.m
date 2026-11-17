@@ -1,4 +1,7 @@
 function b = prescribed_motion_stage1(a,p,n,cfg)
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==3
+ b=prescribed_bspline_motion(a,p,n,cfg); return;
+end
 % Exact integration of m*xdd=Fx, m*zdd=Fz-m*g; toe fixed at world origin.
 if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
  b=prescribed_impulse_motion_stage1(a,p,n,cfg);
