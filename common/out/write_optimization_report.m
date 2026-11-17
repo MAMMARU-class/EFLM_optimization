@@ -74,8 +74,7 @@ end
 fprintf(fid, 'Weights      : w1=%.12g, w2=%.12g\n', cfg.w1, cfg.w2);
 fprintf(fid, 'Random seed  : %d\n', cfg.seed);
 fprintf(fid, 'Stance nodes : %d (optimization), %d (final check)\n', cfg.nodes, cfg.finalNodes);
-fprintf(fid, 'Minimum times: stance %.6f s, flight %.6f s\n\n', ...
-    cfg.minimumStance, cfg.minimumFlight);
+fprintf(fid, 'Minimum gait duration: %.6f s\n\n', cfg.minGaitDuration);
 
 if ~isempty(failure)
     fprintf(fid, 'Failure\n');

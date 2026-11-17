@@ -1,19 +1,24 @@
-function result = optimize_impulse_two_stage(p,tab,cfg)
+function result = optimize_impulse_two_stage(p,tab,cfg,folder)
 % MultiStart global exploration followed by a smaller-box MultiStart refinement.
 rng(cfg.seed,'twister');
 prepare_optimization_pool(cfg);
 simulate=str2func(cfg.simulationFunction);
 messages=[];
-if cfg.useParallel, messages=parallel.pool.PollableDataQueue; end
+if cfg.useParallel
+ messages=parallel.pool.DataQueue;
+ afterEach(messages,@receiveSolverStats);
+end
 nvars=numel(cfg.initial); lastX=[]; lastR=[];
 stageIterations=zeros(1,3); stageFunctionEvaluations=zeros(1,3);
 stage=0; started=tic; stageClock=tic;
+completedStarts=0; feasibleStarts=0; expectedStarts=0;
+progressLineLength=0;
 lo=cfg.lower; hi=cfg.upper; width=hi-lo;
 options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
  'MaxIterations',cfg.maxIterations,'MaxFunctionEvaluations',cfg.maxEvaluations,...
  'ConstraintTolerance',cfg.constraintTolerance,'StepTolerance',cfg.stepTolerance,...
  'FiniteDifferenceStepSize',1e-6,'OutputFcn',@recordSolverStats);
-ms=MultiStart('Display','iter','UseParallel',cfg.useParallel,'StartPointsToRun','all',...
+ms=MultiStart('Display','off','UseParallel',cfg.useParallel,'StartPointsToRun','all',...
  'MaxTime',Inf);
 stage=1; stageClock=tic;
 x0=(cfg.initial-lo)./width;
@@ -23,8 +28,26 @@ kValues=cfg.grfKValues;
 xg=[]; fg=Inf; bestViolation=Inf; distinctGlobalSolutions=0;
 og=struct('localSolverTotal',0,'localSolverSuccess',0);
 selectedK=kValues(1);
+checkpointFolder=fullfile(folder,'k_checkpoints');
+if ~isfolder(checkpointFolder), mkdir(checkpointFolder); end
 for group=1:numel(kValues)
  cfg.grfK=kValues(group); lastX=[]; lastR=[];
+ checkpointPath=fullfile(checkpointFolder,sprintf('k_%02d.mat',cfg.grfK));
+ if isfile(checkpointPath)
+  saved=load(checkpointPath,'record'); record=saved.record;
+  if record.k~=cfg.grfK || record.group~=group || ~isequal(record.kValues,kValues) || ...
+    ~isequal(record.settings,cfg)
+   error('EFLM:ResumeSettings','Checkpoint settings do not match k=%d.',cfg.grfK);
+  end
+  rng(record.randomState);
+  fprintf('[%d/%d] k=%d | restored | cost=%.6g | violation=%.3g\n',...
+   group,numel(kValues),cfg.grfK,record.cost,record.violation);
+ else
+ groupClock=tic;
+ completedStarts=0; feasibleStarts=0; expectedStarts=cfg.startsPerK;
+ showProgress();
+ previousIterations=stageIterations(1); previousEvaluations=stageFunctionEvaluations(1);
+ stageIterations(1)=0; stageFunctionEvaluations(1)=0;
  % Starts are generated per k, avoiding a large total-start array.
  physical=lo+rand(cfg.startsPerK,nvars).*width;
  physical=seed_horizontal_impulse(physical,cfg,true);
@@ -33,17 +56,37 @@ for group=1:numel(kValues)
  physical(1,:)=seed_horizontal_impulse(cfg.initial,cfg,false);
  starts=(physical-lo)./width;
  problem.x0=starts(1,:);
- fprintf('Horizontal GRF: k=%d (%d/%d), %d broad starts\n',...
-  cfg.grfK,group,numel(kValues),cfg.startsPerK);
  [xx,ff,~,oo,ss]=run(ms,problem,CustomStartPointSet(starts));
- collectMessages();
- distinctGlobalSolutions=distinctGlobalSolutions+numel(ss);
- og.localSolverTotal=og.localSolverTotal+oo.localSolverTotal;
- og.localSolverSuccess=og.localSolverSuccess+oo.localSolverSuccess;
- if isempty(xx), continue; end
- trial=evaluate(xx);
- if ~trial.success, continue; end
- violation=trial.maxViolation;
+ if isempty(ff), ff=NaN; end
+ record=struct('k',cfg.grfK,'group',group,'kValues',kValues,'settings',cfg,...
+  'randomState',rng,'x',xx,'cost',ff,'violation',Inf,'success',false,...
+  'localSolverTotal',oo.localSolverTotal,'localSolverSuccess',oo.localSolverSuccess,...
+  'distinctSolutions',numel(ss),'iterations',stageIterations(1),...
+  'functionEvaluations',stageFunctionEvaluations(1));
+ if ~isempty(xx)
+  trial=evaluate(xx);
+  record.success=trial.success;
+  if trial.success, record.violation=trial.maxViolation; end
+ end
+ record.elapsed=toc(groupClock);
+ record.completedStarts=completedStarts; record.feasibleStarts=feasibleStarts;
+ temporaryPath=[checkpointPath '.tmp'];
+ save(temporaryPath,'record','-v7'); movefile(temporaryPath,checkpointPath,'f');
+ summary=sprintf('[%d/%d] k=%d | feasible=%d/%d | cost=%.6g | violation=%.3g | %.1f s',...
+  group,numel(kValues),cfg.grfK,record.feasibleStarts,record.completedStarts,...
+  record.cost,record.violation,record.elapsed);
+ replaceProgressLine(summary);
+ fprintf('\n'); progressLineLength=0;
+ stageIterations(1)=previousIterations;
+ stageFunctionEvaluations(1)=previousEvaluations;
+ end
+ distinctGlobalSolutions=distinctGlobalSolutions+record.distinctSolutions;
+ og.localSolverTotal=og.localSolverTotal+record.localSolverTotal;
+ og.localSolverSuccess=og.localSolverSuccess+record.localSolverSuccess;
+ stageIterations(1)=stageIterations(1)+record.iterations;
+ stageFunctionEvaluations(1)=stageFunctionEvaluations(1)+record.functionEvaluations;
+ if isempty(record.x) || ~record.success, continue; end
+ xx=record.x; ff=record.cost; violation=record.violation;
  feasible=violation<=cfg.constraintTolerance;
  incumbentFeasible=bestViolation<=cfg.constraintTolerance;
  if isempty(xg) || (feasible && ~incumbentFeasible) || ...
@@ -56,17 +99,16 @@ cfg.grfK=selectedK; lastX=[]; lastR=[];
 cfg.initial=seed_horizontal_impulse(cfg.initial,cfg,false);
 globalElapsed=toc(stageClock);
 if isempty(xg), error('EFLM:NoSolution','No global-stage solution found.'); end
-stage=2; stageClock=tic;
+ stage=2; stageClock=tic; cfg.nodes=cfg.finalNodes; lastX=[]; lastR=[];
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
 startsLocal=[xg;localLo+(localHi-localLo).*rand(cfg.localStarts-1,nvars)];
 [xl,fl,~,ol,sl]=run(ms,problem,CustomStartPointSet(startsLocal));
-collectMessages();
 localElapsed=toc(stageClock);
 best=xg;
 if ~isempty(xl)
  rg=evaluate(xg); rl=evaluate(xl);
- if rl.success && ((rl.maxViolation<=cfg.constraintTolerance && (rg.maxViolation>cfg.constraintTolerance || fl<fg)) || ...
+  if rl.success && ((rl.maxViolation<=cfg.constraintTolerance && (rg.maxViolation>cfg.constraintTolerance || rl.objective<rg.objective)) || ...
    (rg.maxViolation>cfg.constraintTolerance && rl.maxViolation<rg.maxViolation))
   best=xl;
  end
@@ -154,28 +196,54 @@ result.matlabVersion=version; result.createdAt=char(datetime('now','TimeZone','A
  function f=objective(x), r=evaluate(x); f=r.objective; end
  function [c,ceq]=constraints(x), r=evaluate(x); c=r.constraintEnvelope; ceq=r.equalityConstraints; end
  function [c,ceq]=activeConstraints(x), r=evaluate(x); c=r.constraints(active); ceq=r.equalityConstraints; end
- function stop=recordSolverStats(~,optimValues,state)
+ function stop=recordSolverStats(x,optimValues,state)
   if strcmp(state,'done') && stage>=1 && stage<=3
    count=0;
    if isfield(optimValues,'funccount'), count=optimValues.funccount; end
+   feasible=false;
+   if stage<=2
+    r=evaluate(x);
+    feasible=r.success && r.maxViolation<=cfg.constraintTolerance;
+   end
    if cfg.useParallel && ~isempty(getCurrentTask())
     send(messages,struct('kind','stats','stage',stage,...
-     'iterations',optimValues.iteration,'evaluations',count));
+     'iterations',optimValues.iteration,'evaluations',count,'feasible',feasible));
    else
-    stageIterations(stage)=stageIterations(stage)+optimValues.iteration;
-    stageFunctionEvaluations(stage)=stageFunctionEvaluations(stage)+count;
+    receiveSolverStats(struct('stage',stage,'iterations',optimValues.iteration,...
+     'evaluations',count,'feasible',feasible));
    end
   end
   stop=false;
  end
- function collectMessages()
-  if ~cfg.useParallel, return; end
-  while true
-   msg=poll(messages,.1);
-   if isempty(msg), break; end
-   stageIterations(msg.stage)=stageIterations(msg.stage)+msg.iterations;
-   stageFunctionEvaluations(msg.stage)=stageFunctionEvaluations(msg.stage)+msg.evaluations;
+ function receiveSolverStats(msg)
+  stageIterations(msg.stage)=stageIterations(msg.stage)+msg.iterations;
+  stageFunctionEvaluations(msg.stage)=stageFunctionEvaluations(msg.stage)+msg.evaluations;
+  if msg.stage==1 && expectedStarts>0
+   completedStarts=completedStarts+1;
+   feasibleStarts=feasibleStarts+double(msg.feasible);
+   if mod(completedStarts,max(1,ceil(expectedStarts/100)))==0 || completedStarts==expectedStarts
+    showProgress();
+   end
   end
+ end
+ function showProgress()
+  width=20;
+ progress=min(1,completedStarts/expectedStarts);
+ feasibility=feasibleStarts/max(1,completedStarts);
+ filled=floor(width*progress); good=floor(width*feasibility);
+ line=sprintf('[%d/%d] k=%d | progress [%s%s] %3.0f%% | feasible [%s%s] %3.0f%% (%d/%d)',...
+  group,numel(kValues),cfg.grfK,repmat('=',1,filled),...
+  repmat(' ',1,width-filled),100*progress,repmat('=',1,good),...
+  repmat(' ',1,width-good),100*feasibility,feasibleStarts,completedStarts);
+ replaceProgressLine(line);
+ end
+ function replaceProgressLine(line)
+  if progressLineLength>0
+   fprintf(1,'%s',repmat(char(8),1,progressLineLength));
+  end
+  padding=max(0,progressLineLength-numel(line));
+  fprintf(1,'%s%s',line,repmat(' ',1,padding));
+  progressLineLength=numel(line)+padding;
  end
 end
 

@@ -23,7 +23,9 @@ starts=[x0;rand(cfg.starts-1,nvars)];
 count=floor((cfg.starts-1)/2);
 if count>0
  angles=deg2rad(1+8*rand(count,1));
- ts=cfg.minimumStance+.02*rand(count,1); tf=cfg.minimumFlight+.02*rand(count,1);
+ periods=cfg.minGaitDuration+.04*rand(count,1);
+ duty=lo(4)+(hi(4)-lo(4))*rand(count,1);
+ ts=periods.*duty; tf=periods-ts;
  lengths=lo(5)+(hi(5)-lo(5))*rand(count,1);
  amplitudes=min(hi(1),max(lo(1),rand(count,1)));
  scales=lo(6)+(hi(6)-lo(6))*rand(count,1);

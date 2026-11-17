@@ -18,7 +18,7 @@ cfg.constraintTolerance=1e-5; cfg.stepTolerance=1e-7;
 cfg.evaluationSeconds=5;
 cfg.penalty=1e5; cfg.video=true; cfg.fps=30; cfg.cycles=3; cfg.playbackSpeed=.1;
 cfg.minimumVideoSeconds=4;
-cfg.minimumStance=.2; cfg.minimumFlight=.2;
+cfg.minGaitDuration=.25;
 cfg.grfXN=15; % Independent horizontal-force control point count.
 cfg.grfZN=9; % Independent vertical-force control point count.
 cfg.grfZBetaStart=[0 .5 0];

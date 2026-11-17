@@ -2,6 +2,11 @@ function [result,folder] = main_stage1(overrides)
 % Stage 1 point-mass optimization. Requires MATLAB R2026b.
 if nargin<1, overrides=struct; end
 validateattributes(overrides,{'struct'},{'scalar'},mfilename,'overrides');
+resumeFolder='';
+if isfield(overrides,'resumeFolder')
+ resumeFolder=char(overrides.resumeFolder);
+ overrides=rmfield(overrides,'resumeFolder');
+end
 assert(strcmp(version('-release'),'2026b'),'Use MATLAB R2026b');
 root=fileparts(fileparts(fileparts(mfilename('fullpath'))));
 if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
@@ -19,8 +24,20 @@ if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
 end
 addpath(genpath(fullfile(root,'common')));
 p=robot_parameters(); cfg=optimization_settings();
-cfg=apply_stage1_overrides(cfg,overrides);
-cfg=configure_impulse_grf(cfg);
+if isempty(resumeFolder)
+ cfg=apply_stage1_overrides(cfg,overrides);
+ cfg=configure_impulse_grf(cfg);
+else
+ if ~isempty(fieldnames(overrides))
+  error('EFLM:ResumeSettings','Pass only resumeFolder when resuming; saved settings are authoritative.');
+ end
+ saved=load(fullfile(resumeFolder,'settings.mat'),'p','cfg','gitInfo');
+ p=saved.p; cfg=saved.cfg;
+ if ~isfield(cfg,'layoutVersion') || cfg.layoutVersion~=2
+  error('EFLM:ResumeSettings','This run does not support per-k resume.');
+ end
+end
+validateattributes(cfg.minGaitDuration,{'numeric'},{'scalar','real','finite','positive'},mfilename,'minGaitDuration');
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
@@ -43,8 +60,13 @@ if any(cfg.initial<cfg.lower|cfg.initial>cfg.upper)
  error('EFLM:InitialPoint','Initial point must lie inside the broad search bounds.');
 end
 cfg.model=model;
-folder=fullfile(root,'_logs',model,char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
-mkdir(folder);
+if isempty(resumeFolder)
+ folder=fullfile(root,'_logs',model,char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
+ mkdir(folder);
+else
+ folder=resumeFolder;
+ fprintf('Resuming %s using saved settings.\n',folder);
+end
 prepare_optimization_pool(cfg);
 runTimer=tic;
 stack=dbstack;
@@ -55,17 +77,21 @@ execution.matlabVersion=version; execution.invocationDirectory=pwd;
 execution.projectRoot=root; execution.callChain=fliplr({stack.name});
 if numel(stack)>1, execution.entryPoint=stack(2).name; else, execution.entryPoint=stack(1).name; end
 % Snapshot code as well as settings: dirty changes must be reproducible too.
-copyfile(fullfile(root,'common'),fullfile(folder,'source','common'));
-copyfile(modelFolder,fullfile(folder,'source',model));
-copyfile(fullfile(root,'run_stage1_optimization.m'),fullfile(folder,'source','run_stage1_optimization.m'));
-[~,gitInfo]=system('git rev-parse HEAD');
+if isempty(resumeFolder)
+ copyfile(fullfile(root,'common'),fullfile(folder,'source','common'));
+ copyfile(modelFolder,fullfile(folder,'source',model));
+ copyfile(fullfile(root,'run_stage1_optimization.m'),fullfile(folder,'source','run_stage1_optimization.m'));
+ [~,gitInfo]=system('git rev-parse HEAD');
+ save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
+else
+ gitInfo=saved.gitInfo;
+end
 execution.gitCommit=strtrim(gitInfo);
-save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
 try
  tab=feval(cfg.cacheFunction,p);
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
  if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
-  result=optimize_impulse_two_stage(p,tab,cfg);
+  result=optimize_impulse_two_stage(p,tab,cfg,folder);
  else
   result=optimize_two_stage(p,tab,cfg);
  end
@@ -89,6 +115,7 @@ catch ME
  execution.status='failed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  execution.totalElapsed=toc(runTimer);
  write_optimization_report([],folder,execution,cfg,ME);
+ fprintf('Resume with: run_stage1_optimization(struct(''resumeFolder'',''%s''))\n',strrep(folder,'''',''''''));
  rethrow(ME);
 end
 end
