@@ -47,7 +47,12 @@ fprintf(fid, 'Groups: basic %s; timing %s; horizontal %s; vertical %s\n',...
 fprintf(fid, 'Horizontal GRF: cubic Hermite, n=%d; sum(abs(f_i))=1; zero net impulse\n',cfg.grfXN);
 fprintf(fid, 'Slope rule    : beta_i=(f_(i+1)-f_(i-1))/2; independent endpoints <= 0\n');
 fprintf(fid, 'Discrete search: k=%s\n',mat2str(cfg.grfKValues));
-fprintf(fid, 'Starts per k : %d\n',cfg.startsPerK);
+if isfield(cfg,'broadStarts')
+ fprintf(fid,'Broad starts (total): %d; evenly distributed across %d k values\n',cfg.broadStarts,numel(cfg.grfKValues));
+ fprintf(fid,'Save interval: %d completed starts\n',cfg.save_interval);
+else
+ fprintf(fid, 'Starts per k : %d\n',cfg.startsPerK);
+end
 fprintf(fid, 'Horizontal start beta [lower upper initial]: %s\n',rowText(cfg.grfXBetaStart));
 fprintf(fid, 'Horizontal end beta [lower upper initial]  : %s\n',rowText(cfg.grfXBetaEnd));
 fprintf(fid, 'Broad starts : %d\n', cfg.starts);

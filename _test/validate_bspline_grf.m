@@ -13,11 +13,13 @@ greville=zeros(16,1);
 for i=1:16, greville(i)=mean(knots(i+1:i+3)); end
 assert(abs(bspline_absolute_area(greville-.5,knots)-.25)<1e-12);
 cfg=optimization_settings(); cfg.layoutVersion=3; cfg.bsplineXN=16; cfg.bsplineZN=11;
-cfg.bsplineForceBound=100; cfg.index.fx=6:19; cfg.index.fz=20:28;
+cfg.bsplineForceBound=50;
+cfg.index.fx=6:19; cfg.index.fz=20:28;
 a=[2.2 deg2rad(50) .3 1 .5 linspace(-10,10,14) ones(1,9)/9];
 p=robot_parameters(); b=prescribed_bspline_motion(a,p,121,cfg);
 assert(max(abs([b.Fx([1 end]);b.Fz([1 end])]))<1e-10);
 assert(min(b.Fz)>=-1e-10);
+assert(max(abs(b.Fx))<=cfg.bsplineForceBound+1e-10);
 assert(max(abs(b.periodic))<1e-10);
 assert(abs(b.x(end)-b.x(1)-b.referenceDisplacement)<1e-10);
 % Compare analytic derivatives against differences away from endpoints.

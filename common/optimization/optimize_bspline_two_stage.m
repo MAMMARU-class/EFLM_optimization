@@ -1,6 +1,7 @@
 function result=optimize_bspline_two_stage(p,tab,cfg,folder)
 % Broad/narrow MultiStart in resumable chunks; dense polish remains unchanged.
 lo=cfg.lower; width=cfg.upper-lo; nv=numel(lo); timer=tic;
+cfg.broadNodes=cfg.nodes;
 lastX=[]; lastR=[]; stage=0; completed=0; feasible=0;
 batchCompleted=0; batchFeasible=0; lineLength=0;
 progressGuard=onCleanup(@finishProgress); %#ok<NASGU>
@@ -19,41 +20,15 @@ options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
 ms=MultiStart('Display','off','UseParallel',cfg.useParallel,'StartPointsToRun','all','MaxTime',Inf);
 checkpoints=fullfile(folder,'checkpoints');
 if ~isfolder(checkpoints), mkdir(checkpoints); end
-globalStarts=fullfile(checkpoints,'broad_starts.mat');
-if isfile(globalStarts)
- saved=load(globalStarts,'starts','state'); starts=saved.starts; rng(saved.state);
-else
- rng(cfg.seed,'twister'); physical=lo+rand(cfg.broadStarts,nv).*width;
- w=op.I(2:end-1); c=physical(:,cfg.index.fx);
- c=c-(c*w')/(w*w')*w;
- c=c./max(1,max(abs(c),[],2)/cfg.bsplineForceBound);
- physical(:,cfg.index.fx)=c;
- z=physical(:,cfg.index.fz); physical(:,cfg.index.fz)=z./sum(z,2);
- physical(1,:)=cfg.initial; starts=(physical-lo)./width;
- state=rng; atomicSave(globalStarts,struct('starts',starts,'state',state));
-end
-if size(starts,1)~=cfg.broadStarts || size(starts,2)~=nv
- error('EFLM:ResumeSettings','Broad start points do not match saved settings.');
-end
-problem=createOptimProblem('fmincon','x0',starts(1,:),'objective',@objective,...
+problem=createOptimProblem('fmincon','x0',(cfg.initial-lo)./width,'objective',@objective,...
  'nonlcon',@constraints,'Aeq',Aeq,'beq',beq,'lb',zeros(1,nv),'ub',ones(1,nv),'options',options);
-[xg,globalStats]=searchChunks('broad',starts,problem);
+[xg,globalStats]=searchChunks('broad',cfg.broadStarts,problem);
 if isempty(xg), error('EFLM:NoSolution','No broad-stage B-spline solution found.'); end
+if isfield(cfg,'narrowNodes'), cfg.nodes=cfg.narrowNodes; end
+lastX=[]; lastR=[];
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
-localStartsPath=fullfile(checkpoints,'narrow_starts.mat');
-if isfile(localStartsPath)
- saved=load(localStartsPath,'starts','broadWinner');
- if ~isequal(saved.broadWinner,xg), error('EFLM:ResumeSettings','Narrow starts belong to a different broad winner.'); end
- local=saved.starts;
-else
- rng(cfg.seed+1,'twister'); local=[xg;localLo+rand(cfg.localStarts-1,nv).*(localHi-localLo)];
- atomicSave(localStartsPath,struct('starts',local,'broadWinner',xg));
-end
-if size(local,1)~=cfg.localStarts || size(local,2)~=nv
- error('EFLM:ResumeSettings','Narrow start points do not match saved settings.');
-end
-[xl,localStats]=searchChunks('narrow',local,problem);
+[xl,localStats]=searchChunks('narrow',cfg.localStarts,problem);
 best=xg;
 if ~isempty(xl) && better(evaluate(xl),evaluate(xg)), best=xl; end
 stage=3; cfg.nodes=cfg.finalNodes; lastX=[]; lastR=[]; stageClock=tic;
@@ -94,9 +69,9 @@ result.status='completed_but_infeasible';
 if result.valid, result.status='feasible_within_sampled_constraints'; end
 result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish);
 
- function [winner,stats]=searchChunks(label,points,baseProblem)
+ function [winner,stats]=searchChunks(label,total,baseProblem)
   stage=1; if strcmp(label,'narrow'), stage=2; end
-  total=size(points,1); completed=0; feasible=0; batchCompleted=0; batchFeasible=0;
+  completed=0; feasible=0; batchCompleted=0; batchFeasible=0;
   winner=[]; winnerResult=[];
   elapsed=0; solverTotal=0; solverSuccess=0; solutions=0;
   chunkSize=cfg.save_interval; chunks=ceil(total/chunkSize);
@@ -111,8 +86,9 @@ result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish
     end
    else
     chunkClock=tic; batchCompleted=0; batchFeasible=0;
-    baseProblem.x0=points(first,:);
-    [x,~,~,out,ss]=run(ms,baseProblem,CustomStartPointSet(points(first:last,:)));
+    points=bspline_start_chunk(checkpoints,label,chunk,total,cfg,baseProblem);
+    baseProblem.x0=points(1,:);
+    [x,~,~,out,ss]=run(ms,baseProblem,CustomStartPointSet(points));
     if cfg.useParallel, drawnow; end % Deliver completed worker messages before saving.
     record=struct('first',first,'last',last,'total',total,'x',x,...
      'elapsed',toc(chunkClock),'localSolverTotal',out.localSolverTotal,...
@@ -154,11 +130,11 @@ result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish
  end
  function showProgress(label,total)
   done=completed+batchCompleted; good=feasible+batchFeasible;
-  fraction=min(1,done/total); ratio=good/max(1,done); width=20;
-  a=floor(width*fraction); b=floor(width*ratio);
+  fraction=min(1,done/total); ratio=good/max(1,done); barWidth=20;
+  a=floor(barWidth*fraction); b=floor(barWidth*ratio);
   line=sprintf('%s progress [%s%s] %3.0f%% | feasible [%s%s] %3.0f%% (%d/%d)',...
-   label,repmat('=',1,a),repmat(' ',1,width-a),100*fraction,...
-   repmat('=',1,b),repmat(' ',1,width-b),100*ratio,good,done);
+   label,repmat('=',1,a),repmat(' ',1,barWidth-a),100*fraction,...
+   repmat('=',1,b),repmat(' ',1,barWidth-b),100*ratio,good,done);
   if lineLength>0, fprintf(1,'%s',repmat(char(8),1,lineLength)); end
   padding=max(0,lineLength-numel(line)); fprintf(1,'%s%s',line,repmat(' ',1,padding));
   lineLength=numel(line)+padding;

@@ -18,9 +18,18 @@ if exist('fmincon','file')~=2 || exist('MultiStart','class')~=8
    'Restart MATLAB after installing the products.']);
 end
 addpath(genpath(fullfile(root,'common')));
+resumeFolder='';
+if isfield(overrides,'resumeFolder')
+ resumeFolder=char(overrides.resumeFolder); overrides=rmfield(overrides,'resumeFolder');
+end
 p=robot_parameters(); cfg=optimization_settings();
+cfg.broadStarts=220000; cfg.save_interval=1000; cfg.localStarts=10000;
+cfg.narrowNodes=1201;
 cfg=apply_stage1_overrides(cfg,overrides);
 cfg=configure_impulse_grf(cfg);
+if isfield(overrides,'startsPerK') && ~isfield(overrides,'broadStarts')
+ cfg.broadStarts=cfg.startsPerK*numel(cfg.grfKValues);
+end
 model='stage1_point_mass';
 modelFolder=fullfile(root,model);
 addpath(genpath(modelFolder));
@@ -43,8 +52,19 @@ if any(cfg.initial<cfg.lower|cfg.initial>cfg.upper)
  error('EFLM:InitialPoint','Initial point must lie inside the broad search bounds.');
 end
 cfg.model=model;
+validateattributes(cfg.save_interval,{'numeric'},{'scalar','integer','positive'});
+validateattributes(cfg.narrowNodes,{'numeric'},{'scalar','integer','>=',3});
+validateattributes(cfg.broadStarts,{'numeric'},{'scalar','integer','>=',numel(cfg.grfKValues)});
+cfg.starts=cfg.broadStarts;
 folder=fullfile(root,'_logs',model,char(datetime('now','Format','yyyyMMdd_HHmmss_SSS')));
-mkdir(folder);
+if ~isempty(resumeFolder)
+ if ~isempty(fieldnames(overrides)), error('EFLM:ResumeSettings','Pass only resumeFolder.'); end
+ saved=load(fullfile(resumeFolder,'settings.mat'),'cfg','p'); cfg=saved.cfg; p=saved.p;
+ if ~isfield(cfg,'save_interval') || ~isfield(cfg,'broadStarts'), error('EFLM:ResumeSettings','Run has no resumable checkpoints.'); end
+ folder=resumeFolder;
+else
+ mkdir(folder);
+end
 prepare_optimization_pool(cfg);
 runTimer=tic;
 stack=dbstack;
@@ -54,6 +74,7 @@ execution.finishedAt=''; execution.totalElapsed=NaN; execution.status='running';
 execution.matlabVersion=version; execution.invocationDirectory=pwd;
 execution.projectRoot=root; execution.callChain=fliplr({stack.name});
 if numel(stack)>1, execution.entryPoint=stack(2).name; else, execution.entryPoint=stack(1).name; end
+if isempty(resumeFolder)
 % Snapshot code as well as settings: dirty changes must be reproducible too.
 copyfile(fullfile(root,'common'),fullfile(folder,'source','common'));
 copyfile(modelFolder,fullfile(folder,'source',model));
@@ -61,11 +82,16 @@ copyfile(fullfile(root,'run_stage1_optimization.m'),fullfile(folder,'source','ru
 [~,gitInfo]=system('git rev-parse HEAD');
 execution.gitCommit=strtrim(gitInfo);
 save(fullfile(folder,'settings.mat'),'p','cfg','gitInfo');
+else
+ execution.gitCommit='';
+end
+warningGuard=onCleanup(@()bspline_warning_mode('restore',cfg)); %#ok<NASGU>
 try
+ bspline_warning_mode('disable',cfg);
  tab=feval(cfg.cacheFunction,p);
  fprintf('R2026b | %s | mass %.9f kg | %d + %d MultiStart runs\n',model,p.m,cfg.starts,cfg.localStarts);
  if isfield(cfg,'layoutVersion') && cfg.layoutVersion==2
-  result=optimize_impulse_two_stage(p,tab,cfg);
+  result=optimize_impulse_two_stage(p,tab,cfg,folder);
  else
   result=optimize_two_stage(p,tab,cfg);
  end
@@ -83,12 +109,14 @@ try
  execution.totalElapsed=toc(runTimer); execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  fprintf('[Saving %d/%d] Report: report.txt\n',saveSteps,saveSteps);
  write_optimization_report(result,folder,execution,cfg);
- disp(readtable(fullfile(folder,'summary.csv')));
+
  fprintf('Saved: %s\n',folder);
 catch ME
  execution.status='failed'; execution.finishedAt=char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss.SSS Z'));
  execution.totalElapsed=toc(runTimer);
  write_optimization_report([],folder,execution,cfg,ME);
- rethrow(ME);
+ fprintf('Optimization stopped. Details: %s\n',fullfile(folder,'report.txt'));
+ fprintf('Resume: run_stage1_optimization(struct(''resumeFolder'',''%s''))\n',strrep(folder,'''',''''''));
+ result=[];
 end
 end

@@ -15,18 +15,21 @@ if nargin<1
     overrides.duty = [0.3, 0.60, 0.50];           % D [-]
     % Horizontal GRF. Previous trajectories: Ix approximately 1.13--1.99 N s.
     overrides.Ix = [0.1, 4.0, 1.13];              % [N s], not peak force
-    overrides.grfXN = 15;                         % control points (>=5)
+    overrides.grfXN = 11;                         % control points (>=5)
     overrides.grfXBetaStart = [-0.5, 0, 0];        % independent beta_1 [-]
     overrides.grfXBetaEnd = [-0.5, 0, 0];          % independent beta_n [-]
-    overrides.restrictGrfK = false;               % true: use grfKSelection
-    overrides.grfKSelection = [7, 8, 9, 10];       % otherwise all 3:n-2
+    overrides.restrictGrfK = true;               % true: use grfKSelection
+    overrides.grfKSelection = [4, 5, 6, 7, 8];       % otherwise all 3:n-2
     % Vertical GRF.
     overrides.grfZN = 9;
     overrides.grfZBetaStart = [0, 0.5, 0];
     overrides.grfZBetaEnd = [-0.5, 0, 0];
-    % Search effort: total = startsPerK * number of selected k values.
-    overrides.startsPerK = 2000;
-    overrides.localStarts = 1000;
+    % Search effort: broadStarts is divided evenly across selected k values.
+    overrides.broadStarts = 220000;
+    overrides.save_interval = 10000;              % completed starts per checkpoint
+    overrides.resumeFolder = '';                % existing Hermite run folder
+    overrides.localStarts = 10000;
+    overrides.narrowNodes = 1201;               % narrow evaluation nodes
     overrides.useParallel = true;
     overrides.parallelWorkers = 20;
     % Weighted squared relative errors from the targets.

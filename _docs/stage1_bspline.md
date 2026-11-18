@@ -11,10 +11,18 @@ Saved settings control the resumed run; an interrupted chunk is rerun from its
 start. Broad and narrow completed chunks are reused. Dense polishing restarts
 from the saved narrow winner if interrupted.
 
+Start points are generated and saved one `save_interval` chunk at a time.
+Optimizer callbacks never retain the full start-point matrix. Each new chunk
+uses a deterministic private random stream; new runs therefore differ from
+the earlier all-at-once random sequence. Existing runs retain their exact
+saved points: legacy v7 start files are converted once to v7.3 for partial
+reads. That conversion temporarily needs memory for one full legacy array
+and disk space for an additional copy, but does not distribute it to workers.
+
 Reference: `_logs/stage1_point_mass/20261109_165106_197`.
 Basic bounds, objective, spring/motor model, minimum stance/flight times (0.2 s each),
-seed, SQP tolerances/iteration limits, 20 workers, 121 broad/narrow nodes and 1201
-final nodes are retained. Broad starts are 22000 total, narrow starts are 1000.
+seed, SQP tolerances/iteration limits, and 20 workers are retained. Broad search
+uses 121 nodes; narrow search and final verification use 1201 nodes.
 No discrete crossing index is used.
 
 Cubic open-uniform splines have zero first/last coefficients. Horizontal: 16
@@ -25,8 +33,11 @@ of freedom. With 5 basic/timing variables, effective dimension is 26, matching
 the reference's 29 variables minus 3 equalities. Degrees of freedom match, not
 the number of control points. Additional mechanical constraints still apply.
 
-The horizontal coefficient bound is a configurable +/-100 N trial bound. It is
-not equivalent to the old Ix bound [0.1,4] N s. Crossing topology is unrestricted.
+The horizontal coefficient bound is +/-50 N, so convex-hull containment keeps
+the full horizontal GRF in [-50,50] N. Vertical coefficients remain normalized
+shape variables; no 80 N bound is imposed on the resulting vertical GRF.
+The horizontal bound is not equivalent to the old Ix bound [0.1,4] N s.
+Crossing topology is unrestricted.
 Vertical amplitude satisfies total impulse mg*T. Basis integrals and first
 moments are evaluated using exact polynomial Gauss quadrature per knot span,
 cached for each fixed evaluation grid. No absolute-value quadrature is used in

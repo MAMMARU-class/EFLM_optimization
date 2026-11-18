@@ -20,16 +20,17 @@ if nargin < 1
     % Cubic open-uniform B-splines in x and z.
     overrides.bsplineXN = 16;                    % x control points, including two fixed zeros
     overrides.bsplineZN = 11;                    % z control points, including two fixed zeros
-    overrides.bsplineForceBound = 100;           % each free x coefficient in [-100, 100] N
+    overrides.bsplineForceBound = 50;            % horizontal GRF in [-50, 50] N
 
     % Search effort: Hermite used 11 k values * 2000 starts = 22000 starts.
-    overrides.broadStarts = 220000;
-    overrides.localStarts = 10000;
-    overrides.save_interval = 1000;                % completed starts per checkpoint
+    overrides.broadStarts = 220000 * 16;
+    overrides.localStarts = 100000;
+    overrides.save_interval = 5000;                % completed starts per checkpoint
     overrides.resumeFolder = '';                  % existing B-spline run folder
     overrides.useParallel = true;
     overrides.parallelWorkers = 20;
-    overrides.nodes = 121;                       % broad and narrow evaluation
+    overrides.nodes = 121;                       % broad evaluation
+    overrides.narrowNodes = 1201;                % narrow evaluation
     overrides.finalNodes = 1201;                 % final refinement and check
     overrides.localRadius = 0.15;                % narrow box radius, normalized
     overrides.seed = 20261103;
@@ -76,7 +77,8 @@ cfg.lower=cfg.lower(1:5);
 cfg.upper=cfg.upper(1:5);
 cfg.bsplineXN=16;
 cfg.bsplineZN=11;
-cfg.bsplineForceBound=100;
+cfg.bsplineForceBound=50;
+cfg.narrowNodes=1201;
 cfg.broadStarts=22000;
 cfg.localStarts=1000;
 cfg.save_interval=100;
@@ -108,6 +110,7 @@ validateattributes(cfg.broadStarts,{'numeric'},{'scalar','integer','positive'});
 validateattributes(cfg.localStarts,{'numeric'},{'scalar','integer','positive'});
 validateattributes(cfg.save_interval,{'numeric'},{'scalar','integer','positive'});
 validateattributes(cfg.nodes,{'numeric'},{'scalar','integer','>=',3});
+validateattributes(cfg.narrowNodes,{'numeric'},{'scalar','integer','>=',3});
 validateattributes(cfg.finalNodes,{'numeric'},{'scalar','integer','>=',3});
 validateattributes(cfg.lower,{'numeric'},{'row','numel',5,'real','finite'});
 validateattributes(cfg.upper,{'numeric'},{'row','numel',5,'real','finite'});
@@ -162,7 +165,10 @@ fid=fopen(fullfile(folder,'report.txt'),'w'); guard=onCleanup(@()fclose(fid)); %
 fprintf(fid,'Open-uniform cubic B-spline; reference 20261109_165106_197\n');
 fprintf(fid,'Variables: %d; independent equality constraints: 2; effective dimension: %d\n',numel(cfg.initial),numel(cfg.initial)-2);
 fprintf(fid,'Horizontal coefficient bounds: +/- %.9g N\n',cfg.bsplineForceBound);
-fprintf(fid,'Broad starts: %d; narrow starts: %d; broad/narrow nodes: %d; final nodes: %d\n',cfg.broadStarts,cfg.localStarts,cfg.nodes,cfg.finalNodes);
+narrowNodes=cfg.nodes;
+if isfield(cfg,'narrowNodes'), narrowNodes=cfg.narrowNodes; end
+fprintf(fid,'Broad starts: %d; narrow starts: %d; broad nodes: %d; narrow nodes: %d; final nodes: %d\n',...
+ cfg.broadStarts,cfg.localStarts,cfg.nodes,narrowNodes,cfg.finalNodes);
 fprintf(fid,'Status: %s\nCost: %.12g\nSpeed: %.12g\nCoT: %.12g\nMax violation: %.12g\n',...
  result.status,result.final.objective,result.final.body.speed,result.final.cot,result.final.maxViolation);
 fprintf(fid,'Absolute horizontal impulse (postprocessed): %.12g N s\n',result.final.body.bspline.absoluteImpulse);
