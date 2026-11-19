@@ -1,6 +1,6 @@
 function [result, folder] = run_stage1_bspline(overrides)
 clc
-% Compare cubic B-spline GRFs with Hermite run 20261109_165106_197.
+% Compare cubic B-spline GRFs with the current Hermite settings.
 % Usage: run_stage1_bspline() or run_stage1_bspline(options).
 % Basic/timing parameters are [lower, upper, initial].
 % The first and last B-spline coefficients are fixed at zero.
@@ -22,10 +22,10 @@ if nargin < 1
     overrides.bsplineZN = 11;                    % z control points, including two fixed zeros
     overrides.bsplineForceBound = 50;            % horizontal GRF in [-50, 50] N
 
-    % Search effort: Hermite used 11 k values * 2000 starts = 22000 starts.
-    overrides.broadStarts = 220000 * 16;
-    overrides.localStarts = 100000;
-    overrides.save_interval = 5000;                % completed starts per checkpoint
+    % Search effort: keep the B-spline start counts.
+    overrides.broadStarts = 200000 * 5;
+    overrides.localStarts = 10000;
+    overrides.save_interval = 10000;               % completed starts per checkpoint
     overrides.resumeFolder = '';                  % existing B-spline run folder
     overrides.useParallel = true;
     overrides.parallelWorkers = 20;
@@ -162,7 +162,7 @@ for axis={'x','z'}
 end
 if cfg.video, render_eflm_video(result,folder); end
 fid=fopen(fullfile(folder,'report.txt'),'w'); guard=onCleanup(@()fclose(fid)); %#ok<NASGU>
-fprintf(fid,'Open-uniform cubic B-spline; reference 20261109_165106_197\n');
+fprintf(fid,'Open-uniform cubic B-spline; current Hermite settings\n');
 fprintf(fid,'Variables: %d; independent equality constraints: 2; effective dimension: %d\n',numel(cfg.initial),numel(cfg.initial)-2);
 fprintf(fid,'Horizontal coefficient bounds: +/- %.9g N\n',cfg.bsplineForceBound);
 narrowNodes=cfg.nodes;
