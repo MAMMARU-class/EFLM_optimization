@@ -7,6 +7,14 @@ Completed chunks are saved atomically under `checkpoints/`, alongside the exact
 start points. Progress/feasible percentages update in the Command Window.
 To resume after interruption, run
 `run_stage1_bspline(struct('resumeFolder','<existing run folder>'))`.
+After stopping the running MATLAB optimization, use
+`run_stage1_bspline(struct('resumeFolder','<existing run folder>', ...
+'finishBroadEarly',true))` to finish broad search at its last contiguous,
+completed checkpoint and continue to narrow search. The planned broad start
+count in `settings.mat` remains unchanged. The early-stop decision is saved in
+`checkpoints/broad_early_stop.mat`, so an interrupted narrow search resumes
+from the same broad cutoff even with the ordinary resume command. An unfinished
+broad chunk is never counted. At least one completed broad chunk is required.
 Saved settings control the resumed run; an interrupted chunk is rerun from its
 start. Broad and narrow completed chunks are reused. Dense polishing restarts
 from the saved narrow winner if interrupted.

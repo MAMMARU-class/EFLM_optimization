@@ -1,5 +1,6 @@
-function result=optimize_bspline_two_stage(p,tab,cfg,folder)
+function result=optimize_bspline_two_stage(p,tab,cfg,folder,finishBroadEarly)
 % Broad/narrow MultiStart in resumable chunks; dense polish remains unchanged.
+if nargin<5, finishBroadEarly=false; end
 lo=cfg.lower; width=cfg.upper-lo; nv=numel(lo); timer=tic;
 cfg.broadNodes=cfg.nodes;
 lastX=[]; lastR=[]; stage=0; completed=0; feasible=0;
@@ -20,15 +21,51 @@ options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
 ms=MultiStart('Display','off','UseParallel',cfg.useParallel,'StartPointsToRun','all','MaxTime',Inf);
 checkpoints=fullfile(folder,'checkpoints');
 if ~isfolder(checkpoints), mkdir(checkpoints); end
+broadLimit=cfg.broadStarts;
+stopFile=fullfile(checkpoints,'broad_early_stop.mat');
+if isfile(stopFile)
+ saved=load(stopFile,'decision'); decision=saved.decision;
+ if decision.plannedStarts~=cfg.broadStarts || decision.saveInterval~=cfg.save_interval || ...
+    decision.completedStarts<1 || decision.completedStarts>cfg.broadStarts || ...
+    mod(decision.completedStarts,cfg.save_interval)~=0
+  error('EFLM:ResumeSettings','Early-stop marker does not match saved settings.');
+ end
+ broadLimit=decision.completedStarts;
+ fprintf('Resuming early broad stop at %d/%d starts.\n',broadLimit,cfg.broadStarts);
+elseif finishBroadEarly
+ chunks=ceil(cfg.broadStarts/cfg.save_interval);
+ completedChunks=0;
+ for cutoffChunk=1:chunks
+  path=fullfile(checkpoints,sprintf('broad_%05d.mat',cutoffChunk));
+  if ~isfile(path), break; end
+  saved=load(path,'record'); record=saved.record;
+  first=(cutoffChunk-1)*cfg.save_interval+1;
+  last=min(cutoffChunk*cfg.save_interval,cfg.broadStarts);
+  if record.first~=first || record.last~=last || record.total~=cfg.broadStarts
+   error('EFLM:ResumeSettings','Broad checkpoint %s does not match saved settings.',path);
+  end
+  completedChunks=cutoffChunk;
+ end
+ if completedChunks==0
+  error('EFLM:ResumeSettings','No completed broad checkpoint is available for early stop.');
+ end
+ if completedChunks<chunks
+  broadLimit=min(completedChunks*cfg.save_interval,cfg.broadStarts);
+  decision=struct('completedStarts',broadLimit,'plannedStarts',cfg.broadStarts,...
+   'saveInterval',cfg.save_interval);
+  atomicSave(stopFile,struct('decision',decision));
+  fprintf('Stopping broad search at %d/%d completed starts.\n',broadLimit,cfg.broadStarts);
+ end
+end
 problem=createOptimProblem('fmincon','x0',(cfg.initial-lo)./width,'objective',@objective,...
  'nonlcon',@constraints,'Aeq',Aeq,'beq',beq,'lb',zeros(1,nv),'ub',ones(1,nv),'options',options);
-[xg,globalStats]=searchChunks('broad',cfg.broadStarts,problem);
+[xg,globalStats]=searchChunks('broad',cfg.broadStarts,problem,broadLimit);
 if isempty(xg), error('EFLM:NoSolution','No broad-stage B-spline solution found.'); end
 if isfield(cfg,'narrowNodes'), cfg.nodes=cfg.narrowNodes; end
 lastX=[]; lastR=[];
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
 problem.x0=xg; problem.lb=localLo; problem.ub=localHi;
-[xl,localStats]=searchChunks('narrow',cfg.localStarts,problem);
+[xl,localStats]=searchChunks('narrow',cfg.localStarts,problem,cfg.localStarts);
 best=xg;
 if ~isempty(xl) && better(evaluate(xl),evaluate(xg)), best=xl; end
 stage=3; cfg.nodes=cfg.finalNodes; lastX=[]; lastR=[]; stageClock=tic;
@@ -68,14 +105,20 @@ result.valid=result.final.maxViolation<=cfg.constraintTolerance && result.final.
 result.status='completed_but_infeasible';
 if result.valid, result.status='feasible_within_sampled_constraints'; end
 result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish);
+result.broadStoppedEarly=broadLimit<cfg.broadStarts;
+result.broadCompletedStarts=broadLimit;
 
- function [winner,stats]=searchChunks(label,total,baseProblem)
+ function [winner,stats]=searchChunks(label,total,baseProblem,searchLimit)
   stage=1; if strcmp(label,'narrow'), stage=2; end
   completed=0; feasible=0; batchCompleted=0; batchFeasible=0;
   winner=[]; winnerResult=[];
   elapsed=0; solverTotal=0; solverSuccess=0; solutions=0;
-  chunkSize=cfg.save_interval; chunks=ceil(total/chunkSize);
-  fprintf('%s: %d starts, %d nodes\n',label,total,cfg.nodes);
+  chunkSize=cfg.save_interval; chunks=ceil(searchLimit/chunkSize);
+  if searchLimit<total
+   fprintf('%s: %d/%d completed starts, %d nodes\n',label,searchLimit,total,cfg.nodes);
+  else
+   fprintf('%s: %d starts, %d nodes\n',label,total,cfg.nodes);
+  end
   for chunk=1:chunks
    first=(chunk-1)*chunkSize+1; last=min(chunk*chunkSize,total);
    path=fullfile(checkpoints,sprintf('%s_%05d.mat',label,chunk));
@@ -104,7 +147,7 @@ result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish
    batchCompleted=0; batchFeasible=0;
    elapsed=elapsed+record.elapsed; solverTotal=solverTotal+record.localSolverTotal;
    solverSuccess=solverSuccess+record.localSolverSuccess; solutions=solutions+record.solutions;
-   showProgress(label,total);
+   showProgress(label,searchLimit);
   end
   fprintf('\n'); lineLength=0;
   stats=struct('starts',solverTotal,'successfulStarts',solverSuccess,...
@@ -123,7 +166,7 @@ result.stageStats=struct('global',globalStats,'local',localStats,'polish',polish
  function receiveStart(isFeasible)
   batchCompleted=batchCompleted+1; batchFeasible=batchFeasible+isFeasible;
   if mod(completed+batchCompleted,max(1,ceil(cfg.save_interval/20)))==0
-   label='broad'; total=cfg.broadStarts;
+   label='broad'; total=broadLimit;
    if stage==2, label='narrow'; total=cfg.localStarts; end
    showProgress(label,total);
   end

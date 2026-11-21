@@ -54,13 +54,19 @@ validateattributes(overrides, {'struct'}, {'scalar'}, mfilename, 'overrides');
 root=fileparts(mfilename('fullpath'));
 addpath(genpath(fullfile(root,'common')),fullfile(root,'stage1_point_mass'));
 resumeFolder='';
+finishBroadEarly=false;
 if isfield(overrides,'resumeFolder')
  resumeFolder=char(overrides.resumeFolder);
  overrides=rmfield(overrides,'resumeFolder');
 end
+if isfield(overrides,'finishBroadEarly')
+ finishBroadEarly=overrides.finishBroadEarly;
+ overrides=rmfield(overrides,'finishBroadEarly');
+ validateattributes(finishBroadEarly,{'logical'},{'scalar'},mfilename,'finishBroadEarly');
+end
 if ~isempty(resumeFolder)
  if ~isempty(fieldnames(overrides))
-  error('EFLM:ResumeSettings','Pass only resumeFolder; saved settings are authoritative.');
+  error('EFLM:ResumeSettings','Pass only resumeFolder and finishBroadEarly; saved settings are authoritative.');
  end
  saved=load(fullfile(resumeFolder,'settings.mat'),'cfg','p');
  cfg=saved.cfg; p=saved.p;
@@ -70,6 +76,9 @@ if ~isempty(resumeFolder)
  folder=resumeFolder;
  fprintf('Resuming %s with its saved settings.\n',folder);
 else
+if finishBroadEarly
+ error('EFLM:ResumeSettings','finishBroadEarly requires resumeFolder.');
+end
 cfg=optimization_settings(); cfg.layoutVersion=3;
 cfg=rmfield(cfg,{'startsPerK','restrictGrfK','grfKSelection','grfXN','grfZN',...
  'grfXBetaStart','grfXBetaEnd','grfZBetaStart','grfZBetaEnd'});
@@ -139,7 +148,7 @@ prepare_optimization_pool(cfg);
 warningGuard=onCleanup(@()bspline_warning_mode('restore',cfg)); %#ok<NASGU>
 try
  bspline_warning_mode('disable',cfg);
- result=optimize_bspline_two_stage(p,tab,cfg,folder);
+ result=optimize_bspline_two_stage(p,tab,cfg,folder,finishBroadEarly);
 catch ME
  fid=fopen(fullfile(folder,'report.txt'),'w');
  fprintf(fid,'B-spline optimization failed\n%s\n',getReport(ME,'extended')); fclose(fid);
@@ -167,8 +176,8 @@ fprintf(fid,'Variables: %d; independent equality constraints: 2; effective dimen
 fprintf(fid,'Horizontal coefficient bounds: +/- %.9g N\n',cfg.bsplineForceBound);
 narrowNodes=cfg.nodes;
 if isfield(cfg,'narrowNodes'), narrowNodes=cfg.narrowNodes; end
-fprintf(fid,'Broad starts: %d; narrow starts: %d; broad nodes: %d; narrow nodes: %d; final nodes: %d\n',...
- cfg.broadStarts,cfg.localStarts,cfg.nodes,narrowNodes,cfg.finalNodes);
+fprintf(fid,'Broad starts: %d completed / %d planned; narrow starts: %d; broad nodes: %d; narrow nodes: %d; final nodes: %d\n',...
+ result.stageStats.global.starts,cfg.broadStarts,cfg.localStarts,cfg.nodes,narrowNodes,cfg.finalNodes);
 fprintf(fid,'Status: %s\nCost: %.12g\nSpeed: %.12g\nCoT: %.12g\nMax violation: %.12g\n',...
  result.status,result.final.objective,result.final.body.speed,result.final.cot,result.final.maxViolation);
 fprintf(fid,'Absolute horizontal impulse (postprocessed): %.12g N s\n',result.final.body.bspline.absoluteImpulse);
