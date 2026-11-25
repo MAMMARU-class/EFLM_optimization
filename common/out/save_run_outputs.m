@@ -14,7 +14,7 @@ if numel(result.bestVariables)>=5, variableNames{5}='r0'; end % Old logs remain 
 if numel(result.bestVariables)>=6, variableNames{6}='stanceScale'; end
 if isfield(result.settings,'variableNames'), variableNames=result.settings.variableNames; end
 writetable(array2table([result.bestVariables,b.speed,r.cot,r.energy,b.distance,b.T,b.Ts,b.Tf,r.maxViolation,result.valid],...
- 'VariableNames',[variableNames,{'speed','CoT','energy','distance','period','stanceTime','flightTime','maxViolation','valid'}]),...
+ 'VariableNames',matlab.lang.makeUniqueStrings([variableNames,{'speed','CoT','energy','distance','period','stanceTime','flightTime','maxViolation','valid'}])),...
  fullfile(folder,'summary.csv'));
 if isfield(b,'horizontalGRF')
  h=b.horizontalGRF;
@@ -54,8 +54,11 @@ if isfield(r,'constraintChannels')
  names={'torqueUpperH','torqueUpperK','torqueLowerH','torqueLowerK',...
  'angleUpperH','angleUpperK','angleLowerH','angleLowerK','springUpper','springLower',...
  'rpmH','rpmK','height'};
- if size(r.constraintChannels,2)==16
+ if size(r.constraintChannels,2)>=16
   names=[names,{'frictionPositive','frictionNegative','normalForce'}];
+ end
+ if size(r.constraintChannels,2)==18
+  names=[names,{'toeAngleLower','toeAngleUpper'}];
  end
  writetable(array2table([b.t,r.constraintChannels],'VariableNames',[{'t'},names]),...
   fullfile(folder,'constraint_residuals.csv'));

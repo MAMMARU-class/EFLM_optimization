@@ -11,8 +11,12 @@ if cfg.useParallel
 else
  queue=[];
 end
-op=bspline_operators(cfg.bsplineXN,1);
-A=zeros(2,nv); A(1,cfg.index.fx)=op.I(2:end-1)/cfg.bsplineForceBound;
+if cfg.layoutVersion==4
+ op=grf_operators(cfg.curveType,cfg.controlCount,1); forceScale=p.m*p.g;
+else
+ op=bspline_operators(cfg.bsplineXN,1); forceScale=cfg.bsplineForceBound;
+end
+A=zeros(2,nv); A(1,cfg.index.fx)=op.I(2:end-1)/forceScale;
 A(2,cfg.index.fz)=1; Aeq=A.*width; beq=[0;1]-A*lo';
 options=optimoptions('fmincon','Algorithm',cfg.algorithm,'Display','off',...
  'MaxIterations',cfg.maxIterations,'MaxFunctionEvaluations',cfg.maxEvaluations,...
@@ -60,7 +64,7 @@ end
 problem=createOptimProblem('fmincon','x0',(cfg.initial-lo)./width,'objective',@objective,...
  'nonlcon',@constraints,'Aeq',Aeq,'beq',beq,'lb',zeros(1,nv),'ub',ones(1,nv),'options',options);
 [xg,globalStats]=searchChunks('broad',cfg.broadStarts,problem,broadLimit);
-if isempty(xg), error('EFLM:NoSolution','No broad-stage B-spline solution found.'); end
+if isempty(xg), error('EFLM:NoSolution','No broad-stage solution found.'); end
 if isfield(cfg,'narrowNodes'), cfg.nodes=cfg.narrowNodes; end
 lastX=[]; lastR=[];
 localLo=max(0,xg-cfg.localRadius); localHi=min(1,xg+cfg.localRadius);
@@ -119,6 +123,7 @@ result.broadCompletedStarts=broadLimit;
   else
    fprintf('%s: %d starts, %d nodes\n',label,total,cfg.nodes);
   end
+  showProgress(label,searchLimit);
   for chunk=1:chunks
    first=(chunk-1)*chunkSize+1; last=min(chunk*chunkSize,total);
    path=fullfile(checkpoints,sprintf('%s_%05d.mat',label,chunk));
@@ -136,7 +141,8 @@ result.broadCompletedStarts=broadLimit;
     record=struct('first',first,'last',last,'total',total,'x',x,...
      'elapsed',toc(chunkClock),'localSolverTotal',out.localSolverTotal,...
      'localSolverSuccess',out.localSolverSuccess,'solutions',numel(ss),...
-     'reportedStarts',batchCompleted,'feasibleStarts',batchFeasible);
+     'reportedStarts',batchCompleted,'feasibleStarts',batchFeasible,...
+     'completedAt',char(datetime('now','TimeZone','Asia/Tokyo','Format','yyyy-MM-dd HH:mm:ss Z')));
     atomicSave(path,struct('record',record));
    end
    if ~isempty(record.x)
@@ -198,8 +204,12 @@ result.broadCompletedStarts=broadLimit;
    if r.body.distance<=0 || ~isfinite(r.objective), error('EFLM:Distance','Invalid displacement.'); end
   catch ME
    if ~startsWith(ME.identifier,'EFLM:'), rethrow(ME); end
+   channelCount=16; trailingCount=4;
+   if cfg.layoutVersion==4
+    channelCount=cfg.constraintChannelCount; trailingCount=cfg.shapeConstraintCount+4;
+   end
    r=struct('success',false,'objective',cfg.penalty+sum(x.^2),'maxViolation',Inf,...
-    'constraints',ones(16*cfg.nodes+4,1),'constraintEnvelope',ones(20,1),...
+    'constraints',ones(channelCount*cfg.nodes+trailingCount,1),'constraintEnvelope',ones(channelCount+trailingCount,1),...
     'errorIdentifier',ME.identifier,'errorMessage',ME.message);
   end
   lastX=x; lastR=r;

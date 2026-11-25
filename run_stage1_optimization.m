@@ -1,43 +1,40 @@
-function [result, folder] = run_stage1_optimization(overrides)
-clc;
-% Usage: run_stage1_optimization() or run_stage1_optimization(options).
-% Each continuous parameter is [lower, upper, initial].
-root=fileparts(mfilename('fullpath'));
-addpath(genpath(fullfile(root,'common')));
+function [result,folder]=run_stage1_optimization(overrides)
+% hermite: independent stance time, shared x/z controls and zero net Fx impulse.
+% Resume with struct('resumeFolder',folder); optionally 'finishBroadEarly',true.
 if nargin<1
     overrides=struct;
-    % Basic initial state.
-    overrides.vx0 = [1.0, 3.5, 1.0];              % [m/s]
-    overrides.thetaL = deg2rad([40, 65, 50]);      % [rad]
-    overrides.r0 = [0.26, 0.33, 0.30];            % [m]
-    % Timing.
-    overrides.stanceScale = [0.5, 2.0, 1.0];       % alpha [-]
-    overrides.duty = [0.3, 0.60, 0.50];           % D [-]
-    % Horizontal GRF. Previous trajectories: Ix approximately 1.13--1.99 N s.
-    overrides.Ix = [0.1, 4.0, 1.13];              % [N s], not peak force
-    overrides.grfXN = 11;                         % control points (>=5)
-    overrides.grfXBetaStart = [-0.5, 0, 0];        % independent beta_1 [-]
-    overrides.grfXBetaEnd = [-0.5, 0, 0];          % independent beta_n [-]
-    overrides.restrictGrfK = true;               % true: use grfKSelection
-    overrides.grfKSelection = [4, 5, 6, 7, 8];       % otherwise all 3:n-2
-    % Vertical GRF.
-    overrides.grfZN = 9;
-    overrides.grfZBetaStart = [0, 0.5, 0];
-    overrides.grfZBetaEnd = [-0.5, 0, 0];
-    % Search effort: broadStarts is divided evenly across selected k values.
-    overrides.broadStarts = 220000;
-    overrides.save_interval = 10000;              % completed starts per checkpoint
-    overrides.resumeFolder = '';                % existing Hermite run folder
+    % Each basic parameter is [lower, upper, initial].
+    overrides.vx0 = [1.0, 3.5, 1.0];          % horizontal speed [m/s]
+    overrides.thetaL = deg2rad([40,65,50]);   % initial leg angle [rad]
+    overrides.r0 = [0.26,0.33,0.30];          % initial leg length [m]
+    overrides.stanceTime = [0.05,0.25,0.15];  % independent stance time [s]
+    overrides.duty = [0.3,0.6,0.5];           % D = T_st / T
+    overrides.minGaitDuration = 0.25;        % minimum T_st + T_fl [s]
+
+    % Both axes use the same basis and zero endpoint forces.
+    % Hermite endpoint slopes are one-sided differences; B-spline is cubic.
+    overrides.controlCount = 11;
+    % mu=0.4 in robot_parameters; Fx limits follow the vertical controls.
+
+    overrides.broadStarts = 300000;
     overrides.localStarts = 10000;
-    overrides.narrowNodes = 1201;               % narrow evaluation nodes
+    overrides.save_interval = 2000;          % completed starts per checkpoint
+    overrides.resumeFolder = '';
+    overrides.nodes = 121;                   % broad stance evaluation nodes
+    overrides.narrowNodes = 1201;
+    overrides.finalNodes = 1201;
     overrides.useParallel = true;
     overrides.parallelWorkers = 20;
-    % Weighted squared relative errors from the targets.
-    overrides.targetSpeed = 4;                    % cycle-mean speed [m/s]
+    overrides.localRadius = 0.15;            % normalized narrow-box radius
+    overrides.seed = 20261103;
+
+    overrides.targetSpeed = 4;               % cycle-average speed [m/s]
     overrides.targetCoT = 0.3;
     overrides.w1 = 5;
     overrides.w2 = 1;
+    overrides.video = true;
 end
-validateattributes(overrides,{'struct'},{'scalar'},mfilename,'overrides');
-[result,folder]=main_stage1(overrides);
+root=fileparts(mfilename('fullpath'));
+addpath(genpath(fullfile(root,'common')),fullfile(root,'stage1_point_mass'));
+[result,folder]=run_grf_optimization('hermite',overrides,root);
 end

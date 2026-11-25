@@ -28,7 +28,9 @@ else
  % A private per-chunk stream makes restarting independent of solver RNG use.
  seed=mod(double(cfg.seed)+chunk-1+double(strcmp(label,'narrow'))*1000000000,2^32);
  stream=RandStream('mt19937ar','Seed',seed);
- if strcmp(label,'broad')
+ if cfg.layoutVersion==4
+  points=grf_start_points(stream,count,cfg,problem,strcmp(label,'broad'),first==1);
+ elseif strcmp(label,'broad')
   lo=cfg.lower; width=cfg.upper-lo;
   physical=lo+rand(stream,count,nv).*width;
   op=bspline_operators(cfg.bsplineXN,1); w=op.I(2:end-1);

@@ -69,8 +69,17 @@ channels=[(tau-hi)/p.tauMax,(lo-tau)/p.tauMax,...
  (s-p.smax)/p.smax,-s/p.smax,(abs(rpm)-p.rpmLimit)/p.rpmLimit,-b.z/p.lengthScale,...
  (b.Fx-p.frictionCoefficient*b.Fz)/(p.m*p.g),...
  (-b.Fx-p.frictionCoefficient*b.Fz)/(p.m*p.g),-b.Fz/(p.m*p.g)];
-durationConstraints=[(cfg.minimumStance-b.Ts)/cfg.minimumStance;...
- (cfg.minimumFlight-b.Tf)/cfg.minimumFlight];
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==4
+ % Contact -> adjacent toe-link joint; angle measured from world +x.
+ toeAngle=atan2(sin(h+k-qa),-cos(h+k-qa));
+ channels=[channels,-toeAngle/pi,(toeAngle-pi)/pi];
+ % Ballistic height is concave: its minimum is at a flight endpoint.
+ durationConstraints=[(cfg.minGaitDuration-b.T)/cfg.minGaitDuration;...
+  -min(b.flightZ([1 end]))/p.lengthScale];
+else
+ durationConstraints=[(cfg.minimumStance-b.Ts)/cfg.minimumStance;...
+  (cfg.minimumFlight-b.Tf)/cfg.minimumFlight];
+end
 shapeConstraints=[b.horizontalGRF.shapeConstraints;b.verticalGRF.shapeConstraints];
 initialVelocityConstraint=b.vz0/(p.g*b.T);
 c=[channels(:);shapeConstraints;-b.distance;durationConstraints;initialVelocityConstraint];

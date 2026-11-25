@@ -1,4 +1,7 @@
 function b = prescribed_motion_stage1(a,p,n,cfg)
+if isfield(cfg,'layoutVersion') && cfg.layoutVersion==4
+ b=prescribed_grf_motion(a,p,n,cfg); return;
+end
 if isfield(cfg,'layoutVersion') && cfg.layoutVersion==3
  b=prescribed_bspline_motion(a,p,n,cfg); return;
 end
